@@ -8,5 +8,5 @@ LEARNING_RATE = 1e-4
 EPOCHS = 5
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-IMAGES_DIR = os.path.join(BASE_DIR, "..", "images")
-IMAGES_DIR = os.path.abspath(IMAGES_DIR)
+IMAGES_DIR = os.path.abspath(os.path.join(BASE_DIR, ".", "images"))
+DATA_DIR = os.path.abspath(os.path.join(BASE_DIR, ".", "data"))

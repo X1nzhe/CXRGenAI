@@ -11,13 +11,13 @@ import xml.etree.ElementTree as ET
 import re
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
+from config import DATA_DIR
 
 # Indiana University Chest X-ray Collection dataset
 PNGS_FILENAME = "NLMCXR_png.tgz"
 REPORTS_FILENAME = "NLMCXR_reports.tgz"
 DATASET_URL = f"https://openi.nlm.nih.gov/imgs/collections/{PNGS_FILENAME}"
 REPORTS_URL = f"https://openi.nlm.nih.gov/imgs/collections/{REPORTS_FILENAME}"
-DATA_DIR = "../data"
 
 # Default number of threads for data downloading
 NUM_THREADS = 8
@@ -161,7 +161,7 @@ def check_and_download_dataset():
     reports_tgz_path = os.path.join(DATA_DIR, REPORTS_FILENAME)
 
     if not os.path.exists(reports_dir) or len(os.listdir(reports_dir)) == 0:
-        if os.path.exists(PNGS_FILENAME):
+        if os.path.exists(REPORTS_FILENAME):
             print("Reports zipfile exists.")
         else:
             print(f"Downloading reports from {REPORTS_URL}")
