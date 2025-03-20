@@ -36,7 +36,7 @@ class XRayGenerator:
     def __init__(self, model_name="CompVis/stable-diffusion-v1-4", device="cuda"):
         self.device = device
         self.pipeline = StableDiffusionPipeline.from_pretrained(
-            model_name, revision="fp16", torch_dtype=torch.float16
+            model_name, torch_dtype=torch.float16
         ).to(device)
 
         # LoRA
