@@ -14,6 +14,7 @@ idna==3.10
 importlib_metadata==8.6.1
 Jinja2 @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_8dveqartkv/croot/jinja2_1730902844110/work
 jmespath==1.0.1
+joblib==1.4.2
 jsonpointer==2.1
 kiwisolver @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_92lgswl3y6/croot/kiwisolver_1737040154211/work
 lightning-utilities==0.14.2
@@ -40,8 +41,11 @@ regex @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_a4s6
 requests==2.32.3
 rich @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_4dgbejjrrq/croot/rich_1732638982215/work
 safetensors==0.5.3
+scikit-learn==1.6.1
+scipy==1.15.2
 six==1.16.0
 sympy==1.13.3
+threadpoolctl==3.6.0
 tokenizers==0.21.1
 torch==2.2.2
 torchmetrics==1.7.0
