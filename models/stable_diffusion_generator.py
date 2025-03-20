@@ -6,6 +6,7 @@ import torch
 import torchvision.transforms as transforms
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 from diffusers import StableDiffusionPipeline
+# from diffusers.utils import logging as diffusers_logging
 from peft import get_peft_model, LoraConfig, TaskType
 import tqdm
 
@@ -34,9 +35,14 @@ def add_prompt_to_image(image, prompt, max_chars_per_line=60):
 
 class XRayGenerator:
     def __init__(self, model_name="CompVis/stable-diffusion-v1-4", device="cuda"):
+        # diffusers_logging.disable_progress_bar()
         self.device = device
         self.pipeline = StableDiffusionPipeline.from_pretrained(
-            model_name, torch_dtype=torch.float16
+            model_name,
+            torch_dtype=torch.float16,
+            use_safetensors=True,
+            load_progress_bar=False,
+            device_map="auto",
         ).to(device)
 
         # LoRA

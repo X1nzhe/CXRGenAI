@@ -1,7 +1,7 @@
 import os
 import torch
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
-from tqdm import tqdm 
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 from utils.data_loader import get_dataloader
