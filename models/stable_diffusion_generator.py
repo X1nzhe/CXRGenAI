@@ -42,7 +42,6 @@ class XRayGenerator:
             torch_dtype=torch.float16,
             use_safetensors=True,
             load_progress_bar=False,
-            device_map="auto",
         ).to(device)
 
         # LoRA
