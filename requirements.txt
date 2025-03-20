@@ -1,48 +1,50 @@
 accelerate==1.5.2
-Brotli @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_d7pp3g74_g/croot/brotli-split_1736182638718/work
+Brotli==1.0.9
 certifi==2025.1.31
 charset-normalizer==3.4.1
-contourpy @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_6236u4rf19/croot/contourpy_1732540057596/work
-cycler @ file:///tmp/build/80754af9/cycler_1637851556182/work
+contourpy==1.3.1
+cycler==0.11.0
 diffusers==0.32.2
 filelock==3.18.0
-fonttools @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_706ove9ndu/croot/fonttools_1737039799828/work
+fonttools==4.55.3
 fsspec==2025.3.0
-h11 @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_14h6x3q_k6/croot/h11_1706652288187/work
+h11==0.14.0
 huggingface-hub==0.29.3
 idna==3.10
 importlib_metadata==8.6.1
-Jinja2 @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_8dveqartkv/croot/jinja2_1730902844110/work
+Jinja2==3.1.4
 jmespath==1.0.1
 joblib==1.4.2
 jsonpointer==2.1
-kiwisolver @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_92lgswl3y6/croot/kiwisolver_1737040154211/work
+kiwisolver==1.4.8
 lightning-utilities==0.14.2
-lxml @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_15nr_peucb/croot/lxml_1737042230275/work
-markdown-it-py @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_43xjt6hz0x/croot/markdown-it-py_1684279911135/work
-MarkupSafe @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_76vhch455b/croot/markupsafe_1738584048225/work
+lxml==5.3.0
+markdown-it-py==2.2.0
+MarkupSafe==3.0.2
 matplotlib==3.10.0
-mdurl @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_4dai2ev8x3/croots/recipe/mdurl_1659716031002/work
+mdurl==0.1.0
 mpmath==1.3.0
 networkx==3.4.2
-numpy @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_1erks0t2_6/croot/numpy_and_numpy_base_1738078508172/work/dist/numpy-2.2.2-cp310-cp310-macosx_10_15_x86_64.whl#sha256=311ffd46cf7fffba40f81e32fa523018fd8478f9f40fc4e8ae78d89340fee1dd
-packaging @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_15t4xe1fp0/croot/packaging_1734472125760/work
+numpy==2.2.2
+packaging==24.2
 pandas==2.2.3
 peft==0.15.0
-pillow @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_21uno0y2_n/croot/pillow_1734430588047/work
+pillow==11.0.0
+pip==25.0
 psutil==7.0.0
-pycryptodomex @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_48tgql2vyi/croot/pycryptodomex_1737040733078/work
-Pygments @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_cflayrfqsi/croot/pygments_1684279981084/work
-pyparsing @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_32bhy1idl3/croot/pyparsing_1731445537860/work
+pycryptodomex==3.21.0
+Pygments==2.15.1
+pyparsing==3.2.0
 python-dateutil==2.8.2
 pytz==2025.1
-PyYAML @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_34t43scp15/croot/pyyaml_1728658999838/work
-regex @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_a4s602267k/croot/regex_1726650054289/work
+PyYAML==6.0.2
+regex==2024.9.11
 requests==2.32.3
-rich @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_4dgbejjrrq/croot/rich_1732638982215/work
+rich==13.9.4
 safetensors==0.5.3
 scikit-learn==1.6.1
 scipy==1.15.2
+setuptools==69.5.1
 six==1.16.0
 sympy==1.13.3
 threadpoolctl==3.6.0
@@ -50,11 +52,12 @@ tokenizers==0.21.1
 torch==2.2.2
 torchmetrics==1.7.0
 torchvision==0.17.2
-tornado @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_a2c0voe1m0/croot/tornado_1733960496093/work
+tornado==6.4.2
 tqdm==4.67.1
 transformers==4.49.0
-typing_extensions @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_6dn2s8ln8g/croot/typing_extensions_1734714858107/work
+typing_extensions==4.12.2
 tzdata==2025.1
-unicodedata2 @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_c9zunc70re/croot/unicodedata2_1736544422992/work
+unicodedata2==15.1.0
 urllib3==2.3.0
+wheel==0.38.4
 zipp==3.21.0
