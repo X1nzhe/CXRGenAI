@@ -44,7 +44,7 @@ class XRayGenerator:
             r=8,
             lora_alpha=16,
             lora_dropout=0.1,
-            target_modules=["cross_attn"]
+            target_modules=["to_k", "to_q", "to_v", "to_out.0"]
         )
         self.pipeline.unet = get_peft_model(self.pipeline.unet, self.lora_config)
     #
