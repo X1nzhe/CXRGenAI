@@ -1,4 +1,6 @@
 import os
+from config import IMAGES_DIR
+from datetime import datetime
 
 import torch
 import torchvision.transforms as transforms
@@ -114,12 +116,13 @@ class XRayGenerator:
     # def _train_step(self, images, texts):
     #     return self.pipeline.unet(images, texts.input_ids).loss
 
-    def generate_and_save_image(self, prompt, image_filename):
+    def generate_and_save_image(self, prompt):
         generated_image = self.pipeline(prompt).images[0]
         img_with_text = add_prompt_to_image(generated_image, prompt)
         # TODO: ADD cheXagent score to image
 
-        image_dir = os.path.abspath('../images')
+        image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+        image_dir = IMAGES_DIR
         os.makedirs(image_dir, exist_ok=True)
 
         file_path = os.path.join(image_dir, f"generated_{image_filename}.png")
@@ -134,7 +137,7 @@ class XRayGenerator:
         img_with_text.save(file_path)
         print(f"Image saved to {file_path}")
 
-        return img_with_text
+        return file_path
 
     def generate_images_for_ssim(self, prompts):
         with torch.no_grad():
