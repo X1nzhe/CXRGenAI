@@ -163,6 +163,22 @@ class XRayGenerator:
         # Stack all images into a single tensor with shape (batch_size, channels, height, width)
         return torch.cat(processed_images, dim=0)
 
+    def generate_images_for_ssimV2(self, prompts):
+        if not isinstance(prompts, list):
+            prompts = [prompts]
+        with torch.no_grad():
+            with torch.autocast(device_type='cuda', dtype=torch.float16):
+                outputs = self.pipeline(
+                    prompts,
+                    num_inference_steps=20,
+                    height=256,
+                    width=256,
+                    output_type="tensor",
+                )
+                images = outputs.images  # [batch, 3, 256, 256]
+        images = images.to(self.device)
+        return images.clamp(0, 1)
+
     def save_model(self, path):
         self.pipeline.unet.save_pretrained(path)
 

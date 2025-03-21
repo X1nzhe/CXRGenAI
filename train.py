@@ -78,7 +78,7 @@ class Trainer:
             for batch in tqdm(val_loader, desc=f"Validating Fold {fold} - Epoch {epoch + 1}"):
                 real_images, texts = batch['image'], batch['report']
                 real_images = real_images.to(self.device)
-                generated_images = self.model.generate_images_for_ssim(texts)
+                generated_images = self.model.generate_images_for_ssimV2(texts) # test new method
                 loss = self._train_step(real_images, texts)
                 total_loss += loss.item()
                 total_ssim += ssim_metric(generated_images, real_images).item()
