@@ -38,11 +38,12 @@ class XRayGenerator:
     def __init__(self, model_name="CompVis/stable-diffusion-v1-4", device="cuda"):
         diffusers_logging.set_verbosity_error()
         diffusers_logging.disable_progress_bar()
-        self.pipeline.set_progress_bar_config(disable=True)
         huggingface_hub.disable_progress_bars()
 
         self.device = device
-        self.pipeline = StableDiffusionPipeline.from_pretrained(
+        self.pipeline = StableDiffusionPipeline
+        self.pipeline.set_progress_bar_config(disable=True)
+        self.pipeline = self.pipeline.from_pretrained(
             model_name,
             torch_dtype=torch.float16,
             use_safetensors=True,
