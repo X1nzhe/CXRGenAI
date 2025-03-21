@@ -48,6 +48,8 @@ class XRayGenerator:
             use_safetensors=True,
         ).to(device)
 
+        self.tokenizer = self.pipeline.tokenizer
+
         # LoRA
         self.lora_config = LoraConfig(
             r=8,

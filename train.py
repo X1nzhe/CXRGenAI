@@ -10,6 +10,7 @@ from utils.data_loader import get_dataloader
 class Trainer:
     def __init__(self, model, k_fold=5, batch_size=8, epochs=5, lr=1e-4, checkpoint_dir="../checkpoints"):
         self.model = model
+        self.tokenizer = model.tokenizer
         self.device = model.device
         self.k_fold = k_fold
         self.batch_size = batch_size
@@ -118,7 +119,14 @@ class Trainer:
         return total_loss / max(num_batches, 1), total_ssim / max(num_batches, 1)
 
     def _train_step(self, images, texts):
-        return self.model.pipeline.unet(images, texts.input_ids).loss
+        text_inputs = self.tokenizer(
+            texts,
+            padding="max_length",
+            truncation=True,
+            max_length=256,
+            return_tensors="pt"
+        ).to(self.device)
+        return self.model.pipeline.unet(images, text_inputs.input_ids).loss
 
     def _plot_training_progress(self, train_losses, val_losses, ssim_scores):
         plt.figure(figsize=(10, 5))
