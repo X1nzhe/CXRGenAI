@@ -92,7 +92,8 @@ class Trainer:
 
     def _train_epoch(self, train_loader, optimizer, fold, epoch):
         total_loss, num_batches = 0.0, 0
-        for images, texts in tqdm(train_loader, desc=f"Training Fold {fold} - Epoch {epoch + 1}"):
+        for batch in tqdm(train_loader, desc=f"Training Fold {fold} - Epoch {epoch + 1}"):
+            images, texts = batch['image'], batch['report']
             images = images.to(self.device)
             loss = self._train_step(images, texts)
             loss.backward()
@@ -106,7 +107,8 @@ class Trainer:
         total_loss, total_ssim, num_batches = 0.0, 0.0, 0
         self.model.pipeline.unet.eval()
         with torch.no_grad():
-            for real_images, texts in tqdm(val_loader, desc=f"Validating Fold {fold} - Epoch {epoch + 1}"):
+            for batch in tqdm(val_loader, desc=f"Validating Fold {fold} - Epoch {epoch + 1}"):
+                real_images, texts = batch['image'], batch['report']
                 real_images = real_images.to(self.device)
                 generated_images = self.model.generate_images_for_ssim(texts)
                 loss = self._train_step(real_images, texts)
