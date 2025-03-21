@@ -14,7 +14,7 @@ class Trainer:
 
         self.unet = self.model.pipeline.unet
         self.text_encoder = self.model.pipeline.text_encoder
-        self.tokenizer = self.model.tokenizer
+        self.tokenizer = self.model.pipeline.tokenizer
         self.vae = self.model.pipeline.vae
         self.noise_scheduler = self.model.pipeline.scheduler
         self.text_encoder.requires_grad_(False)
