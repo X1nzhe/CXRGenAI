@@ -39,13 +39,12 @@ class XRayGenerator:
         diffusers_logging.disable_progress_bar()
 
         self.device = device
-        self.pipeline = StableDiffusionPipeline
-        self.pipeline.set_progress_bar_config(disable=True)
-        self.pipeline = self.pipeline.from_pretrained(
+        self.pipeline = StableDiffusionPipeline.from_pretrained(
             model_name,
             torch_dtype=torch.float16,
             use_safetensors=True,
         ).to(device)
+        self.pipeline.set_progress_bar_config(disable=True)
 
         self.tokenizer = self.pipeline.tokenizer
 
