@@ -5,7 +5,6 @@ from datetime import datetime
 import torch
 import torchvision.transforms as transforms
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
-import huggingface_hub
 from diffusers import StableDiffusionPipeline
 from diffusers.utils import logging as diffusers_logging
 from peft import get_peft_model, LoraConfig, TaskType
@@ -38,7 +37,6 @@ class XRayGenerator:
     def __init__(self, model_name="CompVis/stable-diffusion-v1-4", device="cuda"):
         diffusers_logging.set_verbosity_error()
         diffusers_logging.disable_progress_bar()
-        huggingface_hub.disable_progress_bars()
 
         self.device = device
         self.pipeline = StableDiffusionPipeline
