@@ -46,8 +46,6 @@ class XRayGenerator:
         ).to(device)
         self.pipeline.set_progress_bar_config(disable=True)
 
-        self.tokenizer = self.pipeline.tokenizer
-
         # LoRA
         self.lora_config = LoraConfig(
             r=8,
@@ -56,6 +54,7 @@ class XRayGenerator:
             target_modules=["to_k", "to_q", "to_v", "to_out.0"]
         )
         self.pipeline.unet = get_peft_model(self.pipeline.unet, self.lora_config)
+
     #
     # def train(self, k_fold=5, batch_size=8, epochs=5, lr=1e-4, checkpoint_dir="../checkpoints"):
     #     os.makedirs(checkpoint_dir, exist_ok=True)
@@ -169,3 +168,8 @@ class XRayGenerator:
 
     def load_model(self, path):
         self.pipeline.unet.load_pretrained(path)
+
+    def encode_images(self, images):
+        with torch.no_grad():
+            latents = self.vae.encode(images).latent_dist.sample()
+        return latents * 0.18215
