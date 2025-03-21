@@ -95,7 +95,7 @@ class Trainer:
             texts,
             padding="max_length",
             truncation=True,
-            max_length=256,
+            max_length=77,
             return_tensors="pt"
         ).to(self.device)
 
