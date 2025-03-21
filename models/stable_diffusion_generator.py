@@ -6,6 +6,7 @@ import torch
 import torchvision.transforms as transforms
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 from diffusers import StableDiffusionPipeline
+from diffusers.utils import logging as diffusers_logging
 from peft import get_peft_model, LoraConfig, TaskType
 import tqdm
 
@@ -40,6 +41,9 @@ class XRayGenerator:
             torch_dtype=torch.float16,
             use_safetensors=True,
         ).to(device)
+
+        diffusers_logging.set_verbosity_error()
+        diffusers_logging.disable_progress_bar()
         self.pipeline.set_progress_bar_config(disable=True)
 
         # LoRA
