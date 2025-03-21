@@ -86,6 +86,7 @@ class Trainer:
         return total_loss / max(num_batches, 1), total_ssim / max(num_batches, 1)
 
     def _train_step(self, images, texts):
+        images = images.to(dtype=self.vae.dtype)
         with torch.no_grad():
             latents = self.vae.encode(images).latent_dist.sample()
             latents = latents * 0.18215
