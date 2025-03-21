@@ -176,7 +176,6 @@ class XRayGenerator:
                     output_type="tensor",
                 )
                 images = outputs.images  # [batch, 3, 256, 256]
-        images = images.to(self.device)
         return images.clamp(0, 1)
 
     def save_model(self, path):
