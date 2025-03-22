@@ -23,12 +23,12 @@ def add_prompt_to_image(image, prompt, max_chars_per_line=60):
     line_height = 20
     text_area_height = lines * line_height + 20
     img_width, img_height = image.size
-    new_img = Image.new('L', (img_width, img_height + text_area_height), color=(255, 255, 255))
+    new_img = Image.new('L', (img_width, img_height + text_area_height), color=255)
     new_img.paste(image, (0, 0))
 
     draw = ImageDraw.Draw(new_img)
     font = ImageFont.load_default()
-    draw.multiline_text((10, img_height + 10), wrapped_text, font=font, fill=(0, 0, 0))
+    draw.multiline_text((10, img_height + 10), wrapped_text, font=font, fill=0)
 
     return new_img
 
@@ -173,16 +173,16 @@ class XRayGenerator:
                     num_inference_steps=20,
                     height=256,
                     width=256,
-                    output_type="tensor",
+                    output_type="pt",
                 )
-                images = outputs.images  # [batch, 3, 256, 256]
+                images = outputs.images  # [batch, 1, 256, 256]
         return images.clamp(0, 1)
 
     def save_model(self, path):
         self.pipeline.unet.save_pretrained(path)
 
     def load_model(self, path):
-        self.pipeline.unet.load_pretrained(path)
+        self.pipeline.unet.from_pretrained(path)
 
     def encode_images(self, images):
         with torch.no_grad():
