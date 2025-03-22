@@ -43,7 +43,7 @@ class Trainer:
 
             for epoch in range(self.epochs):
                 train_loss = self._train_epoch(train_loader, optimizer, fold, epoch)
-                val_loss, ssim, chexagent_score = self._validate_epoch(val_loader, ssim_metric, fold, epoch)
+                val_loss, ssim = self._validate_epoch(val_loader, ssim_metric, fold, epoch)
 
                 train_losses.append(train_loss)
                 val_losses.append(val_loss)
