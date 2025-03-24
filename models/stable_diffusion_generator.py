@@ -5,16 +5,11 @@ from datetime import datetime
 import torch
 from torch import nn
 import torchvision.transforms as transforms
-from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 from diffusers import StableDiffusionPipeline
 from diffusers.utils import logging as diffusers_logging
 
-import tqdm
-
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
-
-from utils.data_loader import get_dataloader
 
 
 def add_prompt_to_image(image, prompt, max_chars_per_line=60):

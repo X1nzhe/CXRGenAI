@@ -10,10 +10,9 @@ EPOCHS = 5
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGES_DIR = os.path.abspath(os.path.join(BASE_DIR, ".", "images"))
 DATA_DIR = os.path.abspath(os.path.join(BASE_DIR, ".", "data"))
-
 CHECKPOINTS_DIR = os.path.abspath(os.path.join(BASE_DIR, ".", "checkpoints"))
 
-IMAGE_WIDTH = 256
-IMAGE_HEIGHT = 256
+IMAGE_WIDTH = 512
+IMAGE_HEIGHT = 512
 
 NUM_INFERENCE_STEPS = 35

@@ -3,10 +3,10 @@ import torch
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from peft import get_peft_model, LoraConfig, TaskType, prepare_model_for_kbit_training
+from peft import get_peft_model, LoraConfig, prepare_model_for_kbit_training
 
 from config import CHECKPOINTS_DIR
-from utils.data_loader import get_dataloader
+from data_loader import get_dataloader
 
 
 def prepare_lora_model_for_training(model):
