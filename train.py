@@ -3,13 +3,26 @@ import torch
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from peft import get_peft_model, LoraConfig, TaskType, prepare_model_for_kbit_training
 
 from utils.data_loader import get_dataloader
 
 
+def prepare_lora_model_for_training(model):
+    model.gradient_checkpointing_enable()
+    model = prepare_model_for_kbit_training(model)
+    lora_config = LoraConfig(
+        r=8,
+        lora_alpha=16,
+        lora_dropout=0.1,
+        target_modules=["to_k", "to_q", "to_v", "to_out.0", "to_out.1"]
+    )
+    return get_peft_model(model, lora_config)
+
+
 class Trainer:
     def __init__(self, model, k_fold=5, batch_size=8, epochs=5, lr=1e-4, checkpoint_dir="../checkpoints"):
-        self.model = model
+        self.model = prepare_lora_model_for_training(model)
         self.device = model.device
 
         self.unet = self.model.pipeline.unet
@@ -32,6 +45,9 @@ class Trainer:
         ssim_metric = SSIM(data_range=1.0).to(self.device)
         train_losses, val_losses, ssim_scores = [], [], []
 
+        best_val_loss = float("inf")
+        best_model_info = {"fold": None, "epoch": None, "path": None}
+
         for fold_data in kfold_loaders:
             fold = fold_data['fold']
             train_loader = fold_data['train_loader']
@@ -52,11 +68,32 @@ class Trainer:
                 print(f"Fold {fold} - Epoch {epoch + 1} - Train Loss: {train_loss:.4f} "
                       f"- Val Loss: {val_loss:.4f} - SSIM Score: {ssim:.4f}")
 
-            checkpoint_path = os.path.join(self.checkpoint_dir, f"sd_lora_fold{fold}.pth")
-            self.model.save_model(checkpoint_path)
-            print(f"Checkpoint saved: {checkpoint_path}")
+                if val_loss < best_val_loss:
+                    best_val_loss = val_loss
+                    best_model_info["fold"] = fold
+                    best_model_info["epoch"] = epoch + 1
+                    best_model_info["path"] = os.path.join(self.checkpoint_dir, f"best_model.pth")
+
+                    self.model.save_model(best_model_info["path"])
+                    print(
+                        f"Best model updated: Fold {fold}, Epoch {epoch + 1}, "
+                        f"Val Loss {val_loss:.4f}, saved to {best_model_info['path']}")
+            # checkpoint_path = os.path.join(self.checkpoint_dir, f"sd_lora_fold{fold}.pth")
+            # self.model.save_model(checkpoint_path)
+            # print(f"Checkpoint saved: {checkpoint_path}")
 
         self._plot_training_progress(train_losses, val_losses, ssim_scores)
+
+        print("\nTraining complete. Running final test on the best model from {self.best_model_info['path']}...\n")
+        self.model.load_model(self.best_model_info["path"])
+        test_loader = kfold_loaders[0]['test_loader']
+        test_loss, test_ssim = self._test_epoch(test_loader, ssim_metric)
+        print(f"Final Test - Loss: {test_loss:.4f}, SSIM: {test_ssim:.4f}")
+        print(f"Generating some images...")
+        for batch in test_loader:
+            prompt = batch['report']
+            self.model.generate_and_save_image(prompt)
+            break
 
     def _train_epoch(self, train_loader, optimizer, fold, epoch):
         total_loss, num_batches = 0.0, 0
@@ -74,16 +111,49 @@ class Trainer:
     def _validate_epoch(self, val_loader, ssim_metric, fold, epoch):
         total_loss, total_ssim, num_batches = 0.0, 0.0, 0
         self.model.pipeline.unet.eval()
+
         with torch.no_grad():
             for batch in tqdm(val_loader, desc=f"Validating Fold {fold} - Epoch {epoch + 1}"):
                 real_images, texts = batch['image'], batch['report']
+
                 real_images = real_images.to(self.device)
-                generated_images = self.model.generate_images_for_ssimV2(texts) # test new method
-                loss = self._train_step(real_images, texts)
+                if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
+                    real_images = real_images.float() / 255.0
+
+                generated_images = self.model.generate_images_for_ssimV2(texts)  # test new method
+                loss = self._compute_test_loss(generated_images, real_images)
+
                 total_loss += loss.item()
                 total_ssim += ssim_metric(generated_images, real_images).item()
                 num_batches += 1
         return total_loss / max(num_batches, 1), total_ssim / max(num_batches, 1)
+
+    def _test_epoch(self, test_loader, ssim_metric):
+        total_loss, total_ssim, num_batches = 0.0, 0.0, 0
+        self.model.pipeline.unet.eval()
+
+        with torch.no_grad():
+            for batch in tqdm(test_loader, desc=f"Testing"):
+                real_images, texts = batch['image'], batch['report']
+
+                real_images = real_images.to(self.device)
+                if real_images.dtype == torch.uint8: # normalize to the range [0, 1]
+                    real_images = real_images.float() / 255.0
+
+                generated_images = self.model.generate_images_for_ssimV2(texts)  # test new method
+                loss = self._compute_test_loss(generated_images, real_images)
+
+                total_loss += loss.item()
+                total_ssim += ssim_metric(generated_images, real_images).item()
+                num_batches += 1
+        return total_loss / max(num_batches, 1), total_ssim / max(num_batches, 1)
+
+    def _compute_test_loss(self, generated_images, real_images):
+        with torch.no_grad():
+            mse_loss = torch.nn.functional.mse_loss(generated_images, real_images, reduction="mean")
+            l1_loss = torch.nn.functional.l1_loss(generated_images, real_images, reduction="mean")
+            loss = 0.5 * mse_loss + 0.5 * l1_loss
+        return loss
 
     def _train_step(self, images, texts):
         images = images.to(dtype=self.vae.dtype)
@@ -99,7 +169,9 @@ class Trainer:
             return_tensors="pt"
         ).to(self.device)
 
-        text_embeddings = self.text_encoder(text_inputs.input_ids).last_hidden_state
+        text_embeddings = self.text_encoder(input_ids=text_inputs.input_ids.to(self.device),
+                                            attention_mask=text_inputs.attention_mask.to(self.device)
+                                            ).last_hidden_state
 
         timesteps = torch.randint(
             0, self.noise_scheduler.num_train_timesteps,
