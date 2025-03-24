@@ -103,7 +103,6 @@ class Trainer:
         for batch in tqdm(train_loader, desc=f"Training Fold {fold} - Epoch {epoch}"):
             images, texts = batch['image'], batch['report']
             images = images.to(self.device)
-            texts = texts.to(self.device)
             loss = self._train_step(images, texts)
             loss.backward()
             optimizer.step()
