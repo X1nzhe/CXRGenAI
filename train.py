@@ -5,11 +5,11 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from peft import get_peft_model, LoraConfig, TaskType, prepare_model_for_kbit_training
 
+from config import CHECKPOINTS_DIR
 from utils.data_loader import get_dataloader
 
 
 def prepare_lora_model_for_training(model):
-    model.enable_gradient_checkpointing()
     model = prepare_model_for_kbit_training(model)
     lora_config = LoraConfig(
         r=8,
@@ -21,7 +21,7 @@ def prepare_lora_model_for_training(model):
 
 
 class Trainer:
-    def __init__(self, model, k_fold=5, batch_size=8, epochs=5, lr=1e-4, checkpoint_dir="../checkpoints"):
+    def __init__(self, model, k_fold=5, batch_size=8, epochs=5, lr=1e-4, checkpoint_dir=CHECKPOINTS_DIR):
         self.model = prepare_lora_model_for_training(model)
         self.device = model.device
 
