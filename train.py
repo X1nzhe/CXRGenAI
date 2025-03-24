@@ -32,6 +32,7 @@ class Trainer:
         self.vae = model.vae
         self.noise_scheduler = model.pipeline.scheduler
 
+        self.unet.enable_gradient_checkpointing()
         self.text_encoder.requires_grad_(False)
         self.vae.requires_grad_(False)
 
@@ -67,18 +68,18 @@ class Trainer:
                 val_losses.append(val_loss)
                 ssim_scores.append(ssim)
 
-                print(f"Fold {fold} - Epoch {epoch + 1} - Train Loss: {train_loss:.4f} "
+                print(f"Fold {fold} - Epoch {epoch} - Train Loss: {train_loss:.4f} "
                       f"- Val Loss: {val_loss:.4f} - SSIM Score: {ssim:.4f}")
 
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
                     best_model_info["fold"] = fold
-                    best_model_info["epoch"] = epoch + 1
+                    best_model_info["epoch"] = epoch
                     best_model_info["path"] = os.path.join(self.checkpoint_dir, f"best_model.pth")
 
                     self.model.save_model(best_model_info["path"])
                     print(
-                        f"Best model updated: Fold {fold}, Epoch {epoch + 1}, "
+                        f"Best model updated: Fold {fold}, Epoch {epoch}, "
                         f"Val Loss {val_loss:.4f}, saved to {best_model_info['path']}")
             # checkpoint_path = os.path.join(self.checkpoint_dir, f"sd_lora_fold{fold}.pth")
             # self.model.save_model(checkpoint_path)
@@ -99,9 +100,10 @@ class Trainer:
 
     def _train_epoch(self, train_loader, optimizer, fold, epoch):
         total_loss, num_batches = 0.0, 0
-        for batch in tqdm(train_loader, desc=f"Training Fold {fold} - Epoch {epoch + 1}"):
+        for batch in tqdm(train_loader, desc=f"Training Fold {fold} - Epoch {epoch}"):
             images, texts = batch['image'], batch['report']
             images = images.to(self.device)
+            texts = texts.to(self.device)
             loss = self._train_step(images, texts)
             loss.backward()
             optimizer.step()
@@ -115,7 +117,7 @@ class Trainer:
         self.model.pipeline.unet.eval()
 
         with torch.no_grad():
-            for batch in tqdm(val_loader, desc=f"Validating Fold {fold} - Epoch {epoch + 1}"):
+            for batch in tqdm(val_loader, desc=f"Validating Fold {fold} - Epoch {epoch}"):
                 real_images, texts = batch['image'], batch['report']
 
                 real_images = real_images.to(self.device)

@@ -1,5 +1,5 @@
 import os
-from config import IMAGES_DIR
+from config import IMAGES_DIR, IMAGE_HEIGHT, IMAGE_WIDTH, NUM_INFERENCE_STEPS
 from datetime import datetime
 
 import torch
@@ -55,9 +55,9 @@ class XRayGenerator(nn.Module):
     def generate_and_save_image(self, prompt):
         generated_image = self.pipeline(
                 prompt,
-                num_inference_steps=50,
-                height=256,
-                width=256
+                num_inference_steps=NUM_INFERENCE_STEPS,
+                height=IMAGE_HEIGHT,
+                width=IMAGE_WIDTH
             ).images[0]
         img_with_text = add_prompt_to_image(generated_image, prompt)
         # TODO: ADD cheXagent score to image
@@ -96,12 +96,12 @@ class XRayGenerator(nn.Module):
             with torch.autocast(device_type='cuda', dtype=torch.float16):
                 outputs = self.pipeline(
                     prompts,
-                    num_inference_steps=50,
-                    height=256,
-                    width=256,
+                    num_inference_steps=NUM_INFERENCE_STEPS,
+                    height=IMAGE_HEIGHT,
+                    width=IMAGE_WIDTH,
                     output_type="pt",
                 )
-                images = outputs.images  # [batch, 1, 256, 256]
+                images = outputs.images  # [batch, 1, 512, 512]
         return images.clamp(0, 1)
 
     def save_model(self, path):

@@ -4,6 +4,7 @@ import tarfile
 import pandas as pd
 import torch
 from torchvision import transforms
+from torchvision.transforms.functional import resize, pad
 from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 from sklearn.model_selection import KFold, train_test_split
 import numpy as np
@@ -12,7 +13,7 @@ import xml.etree.ElementTree as ET
 import re
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
-from config import DATA_DIR
+from config import DATA_DIR, IMAGE_WIDTH, IMAGE_HEIGHT
 
 # Indiana University Chest X-ray Collection dataset
 PNGS_FILENAME = "NLMCXR_png.tgz"
@@ -245,14 +246,41 @@ class XRayDataset(Dataset):
 
 
 def get_dataloader(k_folds=5, batch_size=8, test_split=0.2, random_seed=123):
+
+    class ImageResize:
+        def __init__(self, target_width, target_height):
+            self.target_width = target_width
+            self.target_height = target_height
+
+        def __call__(self, img):
+            w, h = img.size
+            ratio = min(self.target_width / w, self.target_height / h)
+            img = resize(img, (int(h * ratio), int(w * ratio)))
+
+            padding = (
+                (self.target_width - img.width) // 2,
+                (self.target_height - img.height) // 2,
+                self.target_width - img.width - (self.target_width - img.width) // 2,
+                self.target_height - img.height - (self.target_height - img.height) // 2
+            )
+            img = pad(img, padding, fill=0)
+
+            return img
+
     check_and_download_dataset()
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)
 
+    # transform = transforms.Compose([
+    #     transforms.Resize((256, 256)),
+    #     transforms.ToTensor(),
+    #     transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+    # ])
     transform = transforms.Compose([
-        transforms.Resize((256, 256)),
+        ImageResize(target_width=IMAGE_WIDTH, target_height=IMAGE_HEIGHT),
+        transforms.Grayscale(num_output_channels=1),
         transforms.ToTensor(),
-        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+        transforms.Normalize(mean=[0.5], std=[0.5])
     ])
 
     full_dataset = XRayDataset(
@@ -290,7 +318,7 @@ def get_dataloader(k_folds=5, batch_size=8, test_split=0.2, random_seed=123):
     for fold, (train_ids, val_ids) in enumerate(kfold.split(train_val_ids)):
         train_indices = train_val_ids[train_ids]
         val_indices = train_val_ids[val_ids]
-        print(f'FOLD {fold+1}')
+        print(f'FOLD {fold}')
         print(f'Train: {len(train_ids)} | Validation: {len(val_ids)}')
 
         train_sampler = SubsetRandomSampler(train_indices)
