@@ -4,6 +4,7 @@ from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from peft import get_peft_model, LoraConfig, prepare_model_for_kbit_training
+import time
 
 from config import CHECKPOINTS_DIR
 from data_loader import get_dataloader
@@ -51,6 +52,9 @@ class Trainer:
         best_val_loss = float("inf")
         best_model_info = {"fold": None, "epoch": None, "path": None}
 
+        # Record the start time
+        start_time = time.time()
+        print(f"\nTraining started at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
         for fold_data in kfold_loaders:
             fold = fold_data['fold']
             train_loader = fold_data['train_loader']
@@ -85,6 +89,15 @@ class Trainer:
             # self.model.save_model(checkpoint_path)
             # print(f"Checkpoint saved: {checkpoint_path}")
 
+        # After training loop
+        # Record the end time
+        end_time = time.time()
+        total_time = end_time - start_time
+        hours = total_time // 3600
+        minutes = (total_time % 3600) // 60
+        seconds = total_time % 60
+        print(f"\nTraining completed at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
+        print(f"Total training time: {int(hours)} hours {int(minutes)} minutes {int(seconds):.2f} seconds")
         self._plot_training_progress(train_losses, val_losses, ssim_scores)
 
         print("\nTraining complete. Running final test on the best model from {self.best_model_info['path']}...\n")
