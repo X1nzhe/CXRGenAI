@@ -19,4 +19,4 @@ IMAGE_HEIGHT = 256
 
 NUM_INFERENCE_STEPS = 30
 
-BASE_PROMPT = f"Chest X-ray, grayscale, medical imaging, radiology, high contrast. Diagnosis: "
+BASE_PROMPT = f"Chest X-ray, grayscale, high contrast, radiology scan, medical imaging, clear lung fields, visible heart and ribcage. Diagnosis: "
