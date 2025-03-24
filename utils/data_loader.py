@@ -278,9 +278,8 @@ def get_dataloader(k_folds=5, batch_size=8, test_split=0.2, random_seed=123):
     # ])
     transform = transforms.Compose([
         ImageResize(target_width=IMAGE_WIDTH, target_height=IMAGE_HEIGHT),
-        transforms.Grayscale(num_output_channels=1),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5], std=[0.5])
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
 
     full_dataset = XRayDataset(
