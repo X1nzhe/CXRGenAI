@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from peft import get_peft_model, LoraConfig, prepare_model_for_kbit_training
 import time
 
-from config import CHECKPOINTS_DIR
+from config import CHECKPOINTS_DIR, BASE_PROMPT
 from data_loader import get_dataloader
 
 
@@ -136,11 +136,7 @@ class Trainer:
                 if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
                     real_images = real_images.float() / 255.0
                 prompts = [
-                    f"A high-resolution chest X-ray scan, grayscale, medical imaging, radiology, high contrast, " \
-                    f"clear lung fields, visible heart and ribcage, hospital-grade scan, professional radiograph.  " \
-                    f"Diagnosis: {t}"
-                    for t in
-                    texts
+                    f"{BASE_PROMPT} Diagnosis: {t}" for t in texts
                 ]
                 generated_images = self.model.generate_images_for_ssimV2(prompts)  # test new method
                 loss = self._compute_test_loss(generated_images, real_images)
@@ -162,11 +158,7 @@ class Trainer:
                 if real_images.dtype == torch.uint8: # normalize to the range [0, 1]
                     real_images = real_images.float() / 255.0
                 prompts = [
-                    f"A high-resolution chest X-ray scan, grayscale, medical imaging, radiology, high contrast, " \
-                    f"clear lung fields, visible heart and ribcage, hospital-grade scan, professional radiograph.  " \
-                    f"Diagnosis: {t}"
-                    for t in
-                    texts
+                    f"{BASE_PROMPT}{text}" for text in texts
                 ]
                 generated_images = self.model.generate_images_for_ssimV2(prompts)  # test new method
                 loss = self._compute_test_loss(generated_images, real_images)
@@ -189,9 +181,7 @@ class Trainer:
             latents = self.vae.encode(images).latent_dist.sample()
             latents = latents * 0.18215
         prompts = [
-            f"A high-resolution chest X-ray scan, grayscale, medical imaging, radiology, high contrast, clear lung " \
-            f"fields, visible heart and ribcage, hospital-grade scan, professional radiograph.  Diagnosis: {t}" for t in
-            texts
+            f"{BASE_PROMPT}{t}" for t in texts
         ]
         text_inputs = self.tokenizer(
             prompts,

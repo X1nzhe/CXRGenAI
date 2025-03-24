@@ -2,7 +2,7 @@ import argparse
 import sys
 
 
-import config
+from config import BASE_PROMPT
 from models.stable_diffusion_generator import XRayGenerator
 from train import Trainer
 # from evaluate import Evaluator
@@ -45,9 +45,7 @@ def main():
             sys.exit(1)
 
         prompt = [
-            f"A high-resolution chest X-ray scan, grayscale, medical imaging, radiology, high contrast, " \
-            f"clear lung fields, visible heart and ribcage, hospital-grade scan, professional radiograph.  " \
-            f"Diagnosis: {args.description}"
+            f"{BASE_PROMPT}{args.description}"
         ]
         generated_image_path = model.generate_and_save_image(prompt)
         print(f"Generated X-Ray image saved.\n")
