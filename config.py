@@ -1,7 +1,9 @@
 import os
 import torch
 
+# Check if CUDA is available
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {DEVICE}")
 
 BATCH_SIZE = 8
 LEARNING_RATE = 1e-4

@@ -1,6 +1,8 @@
+import torch
 import argparse
 import os
 import sys
+import gradio as gr
 
 
 import config
@@ -24,7 +26,6 @@ def main():
     )
 
     args = parser.parse_args()
-
     if args.mode == "train":
         print("Start model training...")
         model = XRayGenerator()
@@ -40,11 +41,17 @@ def main():
 
         print("Start X-Ray image generating...")
         model = XRayGenerator()
-        model.load_model(args.model_path)
+        try:
+            model.load_model(args.model_path)
+        except Exception as e:
+            print(f"Error loading model: {e}")
+            sys.exit(1)
+
         prompt = args.description
         generated_image_path = model.generate_and_save_image(prompt)
         print(f"Generated X-Ray image saved.\n")
 
+        # TODO: MOVE this cheXagent score to model.py if it is working well
         print("Using CheXagent to evaluate the generated X-Ray image...")
         evaluator = CheXagentEvaluator()
         score = evaluator.evaluate(generated_image_path)

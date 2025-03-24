@@ -47,12 +47,12 @@ class XRayGenerator(nn.Module):
         self.text_encoder = self.pipeline.text_encoder
         self.vae = self.pipeline.vae
 
-    def generate_and_save_image(self, prompt):
+    def generate_and_save_image(self, prompt, steps=NUM_INFERENCE_STEPS, resolution=IMAGE_HEIGHT):
         generated_image = self.pipeline(
                 prompt,
-                num_inference_steps=NUM_INFERENCE_STEPS,
-                height=IMAGE_HEIGHT,
-                width=IMAGE_WIDTH
+                num_inference_steps=steps,
+                height=resolution,
+                width=resolution
             ).images[0]
         img_with_text = add_prompt_to_image(generated_image, prompt)
         # TODO: ADD cheXagent score to image
