@@ -25,11 +25,12 @@ class Trainer:
         self.model = prepare_lora_model_for_training(model)
         self.device = model.device
 
-        self.unet = self.model.pipeline.unet
-        self.text_encoder = self.model.pipeline.text_encoder
-        self.tokenizer = self.model.pipeline.tokenizer
-        self.vae = self.model.pipeline.vae
-        self.noise_scheduler = self.model.pipeline.scheduler
+        self.unet = model.unet
+        self.text_encoder = model.text_encoder
+        self.tokenizer = model.pipeline.tokenizer
+        self.vae = model.vae
+        self.noise_scheduler = model.pipeline.scheduler
+
         self.text_encoder.requires_grad_(False)
         self.vae.requires_grad_(False)
 

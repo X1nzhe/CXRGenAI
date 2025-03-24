@@ -3,6 +3,7 @@ from config import IMAGES_DIR
 from datetime import datetime
 
 import torch
+from torch import nn
 import torchvision.transforms as transforms
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 from diffusers import StableDiffusionPipeline
@@ -33,8 +34,9 @@ def add_prompt_to_image(image, prompt, max_chars_per_line=60):
     return new_img
 
 
-class XRayGenerator:
+class XRayGenerator(nn.Module):
     def __init__(self, model_name="CompVis/stable-diffusion-v1-4", device="cuda"):
+        super().__init__()
         diffusers_logging.set_verbosity_error()
         diffusers_logging.disable_progress_bar()
 
@@ -45,6 +47,10 @@ class XRayGenerator:
             use_safetensors=True,
         ).to(device)
         self.pipeline.set_progress_bar_config(disable=True)
+
+        self.unet = self.pipeline.unet
+        self.text_encoder = self.pipeline.text_encoder
+        self.vae = self.pipeline.vae
 
     def generate_and_save_image(self, prompt):
         generated_image = self.pipeline(
