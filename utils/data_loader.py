@@ -4,20 +4,22 @@ import tarfile
 import pandas as pd
 import torch
 from torchvision import transforms
+from torchvision.transforms.functional import resize, pad
 from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, train_test_split
+import numpy as np
 from PIL import Image
 import xml.etree.ElementTree as ET
 import re
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
+from config import DATA_DIR, IMAGE_WIDTH, IMAGE_HEIGHT
 
 # Indiana University Chest X-ray Collection dataset
 PNGS_FILENAME = "NLMCXR_png.tgz"
 REPORTS_FILENAME = "NLMCXR_reports.tgz"
 DATASET_URL = f"https://openi.nlm.nih.gov/imgs/collections/{PNGS_FILENAME}"
 REPORTS_URL = f"https://openi.nlm.nih.gov/imgs/collections/{REPORTS_FILENAME}"
-DATA_DIR = "../data"
 
 # Default number of threads for data downloading
 NUM_THREADS = 8
@@ -122,6 +124,10 @@ def parse_reports(reports_dir):
                 full_report = findings + " " + impression
                 full_report = re.sub(r'\s+', ' ', full_report).strip()
 
+                # Skip samples with empty diagnose
+                if not full_report or not len(full_report):
+                    continue
+
                 for img_id in image_ids:
                     report_data.append({
                         'image_id': img_id,
@@ -143,7 +149,7 @@ def check_and_download_dataset():
 
     print("Checking for Indiana University Chest X-ray Collection dataset...")
     if not os.path.exists(png_dir) or len(os.listdir(png_dir)) == 0:
-        if os.path.exists(PNGS_FILENAME):
+        if os.path.exists(png_tgz_path):
             print("PNG zipfile exists.")
         else:
             print(f"Downloading PNG images from {DATASET_URL}")
@@ -161,7 +167,7 @@ def check_and_download_dataset():
     reports_tgz_path = os.path.join(DATA_DIR, REPORTS_FILENAME)
 
     if not os.path.exists(reports_dir) or len(os.listdir(reports_dir)) == 0:
-        if os.path.exists(PNGS_FILENAME):
+        if os.path.exists(reports_tgz_path):
             print("Reports zipfile exists.")
         else:
             print(f"Downloading reports from {REPORTS_URL}")
@@ -239,12 +245,39 @@ class XRayDataset(Dataset):
             }
 
 
-def get_dataloader(k_folds=5, batch_size=8, random_seed=123):
+def get_dataloader(k_folds=5, batch_size=8, test_split=0.2, random_seed=123):
+
+    class ImageResize:
+        def __init__(self, target_width, target_height):
+            self.target_width = target_width
+            self.target_height = target_height
+
+        def __call__(self, img):
+            w, h = img.size
+            ratio = min(self.target_width / w, self.target_height / h)
+            img = resize(img, (int(h * ratio), int(w * ratio)))
+
+            padding = (
+                (self.target_width - img.width) // 2,
+                (self.target_height - img.height) // 2,
+                self.target_width - img.width - (self.target_width - img.width) // 2,
+                self.target_height - img.height - (self.target_height - img.height) // 2
+            )
+            img = pad(img, padding, fill=0)
+
+            return img
+
     check_and_download_dataset()
     torch.manual_seed(random_seed)
+    np.random.seed(random_seed)
 
+    # transform = transforms.Compose([
+    #     transforms.Resize((256, 256)),
+    #     transforms.ToTensor(),
+    #     transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+    # ])
     transform = transforms.Compose([
-        transforms.Resize((256, 256)),
+        ImageResize(target_width=IMAGE_WIDTH, target_height=IMAGE_HEIGHT),
         transforms.ToTensor(),
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
@@ -255,22 +288,46 @@ def get_dataloader(k_folds=5, batch_size=8, random_seed=123):
         transform=transform
     )
 
+    # 20% of full dataset for testing
+    dataset_size = len(full_dataset)
+    test_size = int(test_split * dataset_size)
+
+    train_val_ids, test_ids = train_test_split(
+        np.arange(dataset_size),
+        test_size=test_size,
+        random_state=random_seed,
+        shuffle=True
+    )
+    test_sampler = SubsetRandomSampler(test_ids)
+    test_loader = DataLoader(
+        full_dataset,
+        batch_size=batch_size,
+        sampler=test_sampler,
+        num_workers=os.cpu_count(),
+        pin_memory=True
+    )
+    print(f"Created Test dataset with {test_size} samples.")
+
+    # 80% of full dataset for training and validating
+    print(f"Creating K-fold (K={k_folds}) datasets...")
     kfold = KFold(n_splits=k_folds, shuffle=True, random_state=random_seed)
 
     kfold_loaders = []
 
-    for fold, (train_ids, val_ids) in enumerate(kfold.split(full_dataset)):
+    for fold, (train_ids, val_ids) in enumerate(kfold.split(train_val_ids)):
+        train_indices = train_val_ids[train_ids]
+        val_indices = train_val_ids[val_ids]
         print(f'FOLD {fold}')
         print(f'Train: {len(train_ids)} | Validation: {len(val_ids)}')
 
-        train_sampler = SubsetRandomSampler(train_ids)
-        val_sampler = SubsetRandomSampler(val_ids)
+        train_sampler = SubsetRandomSampler(train_indices)
+        val_sampler = SubsetRandomSampler(val_indices)
 
         train_loader = DataLoader(
             full_dataset,
             batch_size=batch_size,
             sampler=train_sampler,
-            num_workers=4,
+            num_workers=os.cpu_count(),
             pin_memory=True
         )
 
@@ -278,7 +335,7 @@ def get_dataloader(k_folds=5, batch_size=8, random_seed=123):
             full_dataset,
             batch_size=batch_size,
             sampler=val_sampler,
-            num_workers=4,
+            num_workers=os.cpu_count(),
             pin_memory=True
         )
 
@@ -287,7 +344,9 @@ def get_dataloader(k_folds=5, batch_size=8, random_seed=123):
             'train_loader': train_loader,
             'val_loader': val_loader,
             'train_size': len(train_ids),
-            'val_size': len(val_ids)
+            'val_size': len(val_ids),
+            'test_loader': test_loader,
+            'test_size': len(test_ids),
         })
 
     return kfold_loaders
@@ -302,6 +361,7 @@ def get_dataloader(k_folds=5, batch_size=8, random_seed=123):
 #     print(f"Fold: {sample_fold['fold']}")
 #     print(f"Training samples: {sample_fold['train_size']}")
 #     print(f"Validation samples: {sample_fold['val_size']}")
+#     print(f"Test samples: {sample_fold['test_size']}")
 #
 #     train_loader = sample_fold['train_loader']
 #     for batch in train_loader:
