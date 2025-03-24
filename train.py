@@ -15,7 +15,8 @@ def prepare_lora_model_for_training(model):
         r=8,
         lora_alpha=16,
         lora_dropout=0.1,
-        target_modules=["to_k", "to_q", "to_v", "to_out.0", "to_out.1"]
+        target_modules=["to_k", "to_q", "to_v", "to_out.0"],
+        modules_to_save=["conv_in"]
     )
     return get_peft_model(model, lora_config)
 
