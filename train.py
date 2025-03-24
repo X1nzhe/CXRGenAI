@@ -9,7 +9,7 @@ from utils.data_loader import get_dataloader
 
 
 def prepare_lora_model_for_training(model):
-    model.gradient_checkpointing_enable()
+    model.enable_gradient_checkpointing()
     model = prepare_model_for_kbit_training(model)
     lora_config = LoraConfig(
         r=8,
