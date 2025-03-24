@@ -1,8 +1,5 @@
-import torch
 import argparse
-import os
 import sys
-import gradio as gr
 
 
 import config
@@ -47,7 +44,11 @@ def main():
             print(f"Error loading model: {e}")
             sys.exit(1)
 
-        prompt = args.description
+        prompt = [
+            f"A high-resolution chest X-ray scan, grayscale, medical imaging, radiology, high contrast, " \
+            f"clear lung fields, visible heart and ribcage, hospital-grade scan, professional radiograph.  " \
+            f"Diagnosis: {args.description}"
+        ]
         generated_image_path = model.generate_and_save_image(prompt)
         print(f"Generated X-Ray image saved.\n")
 

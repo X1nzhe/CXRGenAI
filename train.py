@@ -13,9 +13,9 @@ from data_loader import get_dataloader
 def prepare_lora_model_for_training(model):
     model = prepare_model_for_kbit_training(model)
     lora_config = LoraConfig(
-        r=8,
-        lora_alpha=16,
-        lora_dropout=0.1,
+        r=4,
+        lora_alpha=8,
+        lora_dropout=0.2,
         target_modules=["to_k", "to_q", "to_v", "to_out.0"],
         modules_to_save=["conv_in"]
     )
@@ -135,8 +135,14 @@ class Trainer:
                 real_images = real_images.to(self.device)
                 if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
                     real_images = real_images.float() / 255.0
-
-                generated_images = self.model.generate_images_for_ssimV2(texts)  # test new method
+                prompts = [
+                    f"A high-resolution chest X-ray scan, grayscale, medical imaging, radiology, high contrast, " \
+                    f"clear lung fields, visible heart and ribcage, hospital-grade scan, professional radiograph.  " \
+                    f"Diagnosis: {t}"
+                    for t in
+                    texts
+                ]
+                generated_images = self.model.generate_images_for_ssimV2(prompts)  # test new method
                 loss = self._compute_test_loss(generated_images, real_images)
 
                 total_loss += loss.item()
@@ -155,8 +161,14 @@ class Trainer:
                 real_images = real_images.to(self.device)
                 if real_images.dtype == torch.uint8: # normalize to the range [0, 1]
                     real_images = real_images.float() / 255.0
-
-                generated_images = self.model.generate_images_for_ssimV2(texts)  # test new method
+                prompts = [
+                    f"A high-resolution chest X-ray scan, grayscale, medical imaging, radiology, high contrast, " \
+                    f"clear lung fields, visible heart and ribcage, hospital-grade scan, professional radiograph.  " \
+                    f"Diagnosis: {t}"
+                    for t in
+                    texts
+                ]
+                generated_images = self.model.generate_images_for_ssimV2(prompts)  # test new method
                 loss = self._compute_test_loss(generated_images, real_images)
 
                 total_loss += loss.item()
@@ -166,9 +178,9 @@ class Trainer:
 
     def _compute_test_loss(self, generated_images, real_images):
         with torch.no_grad():
-            mse_loss = torch.nn.functional.mse_loss(generated_images, real_images, reduction="mean")
-            l1_loss = torch.nn.functional.l1_loss(generated_images, real_images, reduction="mean")
-            loss = 0.5 * mse_loss + 0.5 * l1_loss
+            mse_loss = torch.nn.functional.mse_loss(generated_images, real_images)
+            l1_loss = torch.nn.functional.l1_loss(generated_images, real_images)
+            loss = 0.8 * mse_loss + 0.2 * l1_loss
         return loss
 
     def _train_step(self, images, texts):
@@ -176,9 +188,13 @@ class Trainer:
         with torch.no_grad():
             latents = self.vae.encode(images).latent_dist.sample()
             latents = latents * 0.18215
-
+        prompts = [
+            f"A high-resolution chest X-ray scan, grayscale, medical imaging, radiology, high contrast, clear lung " \
+            f"fields, visible heart and ribcage, hospital-grade scan, professional radiograph.  Diagnosis: {t}" for t in
+            texts
+        ]
         text_inputs = self.tokenizer(
-            texts,
+            prompts,
             padding="max_length",
             truncation=True,
             max_length=77,
@@ -204,8 +220,9 @@ class Trainer:
             encoder_hidden_states=text_embeddings
         ).sample
 
-        loss = torch.nn.functional.mse_loss(noise_pred, noise)
-
+        mse_loss = torch.nn.functional.mse_loss(noise_pred, noise)
+        l1_loss = torch.nn.functional.l1_loss(noise_pred, noise)
+        loss = 0.8 * mse_loss + 0.2 * l1_loss
         return loss
 
     def _plot_training_progress(self, train_losses, val_losses, ssim_scores):
