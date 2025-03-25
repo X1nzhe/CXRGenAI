@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from peft import get_peft_model, LoraConfig, prepare_model_for_kbit_training
 import time
 
-from config import CHECKPOINTS_DIR, BASE_PROMPT, BATCH_SIZE, EPOCHS, LEARNING_RATE
+from config import CHECKPOINTS_DIR, BATCH_SIZE, EPOCHS, LEARNING_RATE, BASE_PROMPT_PREFIX, \
+    BASE_PROMPT_SUFFIX
 from data_loader import get_dataloader
 
 
@@ -137,7 +138,7 @@ class Trainer:
                 if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
                     real_images = real_images.float() / 255.0
                 prompts = [
-                    f"{BASE_PROMPT} Diagnosis: {t}" for t in texts
+                    f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
                 generated_images = self.model.generate_images_for_ssimV2(prompts)  # test new method
                 loss = self._compute_test_loss(generated_images, real_images)
@@ -159,7 +160,7 @@ class Trainer:
                 if real_images.dtype == torch.uint8: # normalize to the range [0, 1]
                     real_images = real_images.float() / 255.0
                 prompts = [
-                    f"{BASE_PROMPT}{text}" for text in texts
+                    f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
                 generated_images = self.model.generate_images_for_ssimV2(prompts)  # test new method
                 loss = self._compute_test_loss(generated_images, real_images)
@@ -180,13 +181,13 @@ class Trainer:
             latents = self.vae.encode(images).latent_dist.sample()
             latents = latents * 0.18215
         prompts = [
-            f"{BASE_PROMPT}{t}" for t in texts
+            f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
         ]
         text_inputs = self.tokenizer(
             prompts,
             padding="max_length",
             truncation=True,
-            max_length=248,  # 77 by default
+            max_length=77,  # 77 by default
             return_tensors="pt"
         ).to(self.device)
 

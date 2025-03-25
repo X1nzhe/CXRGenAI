@@ -39,30 +39,15 @@ class XRayGenerator(nn.Module):
         self.device = device
         self.pipeline = StableDiffusionPipeline.from_pretrained(
             model_name,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=torch.float16,
             use_safetensors=True,
         ).to(device)
         self.pipeline.set_progress_bar_config(disable=True)
 
-        # Try other CLIP with longer token limit ability
-        model_id = "zer0int/LongCLIP-GmP-ViT-L-14"
-        config = CLIPConfig.from_pretrained(model_id)
-        config.text_config.max_position_embeddings = 248
-        clip_model = CLIPModel.from_pretrained(model_id, torch_dtype=torch.bfloat16, config=config).to(device)
-        clip_processor = CLIPProcessor.from_pretrained(model_id, padding="max_length", max_length=248)
-
-        self.tokenizer = clip_processor.tokenizer  # Replace with the CLIP tokenizer
-        self.text_encoder = clip_model.text_model  # Replace with the CLIP text encoder
-        self.pipeline.tokenizer_max_length = 248
-        # self.pipeline.text_encoder.dtype = torch.bfloat16 #Not need
-
-        # self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-        # self.text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device)
-        self.pipeline.tokenizer = self.tokenizer
-        self.pipeline.text_encoder = self.text_encoder
         # Default CLIP
-        # self.tokenizer = self.pipeline.tokenizer
-        # self.text_encoder = self.pipeline.text_encoder
+        self.tokenizer = self.pipeline.tokenizer
+        self.text_encoder = self.pipeline.text_encoder
+
         self.unet = self.pipeline.unet
         self.vae = self.pipeline.vae
 
@@ -107,7 +92,7 @@ class XRayGenerator(nn.Module):
         if not isinstance(prompts, list):
             prompts = [prompts]
         with torch.no_grad():
-            with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
+            with torch.autocast(device_type='cuda', dtype=torch.float16):
                 outputs = self.pipeline(
                     prompts,
                     num_inference_steps=NUM_INFERENCE_STEPS,
