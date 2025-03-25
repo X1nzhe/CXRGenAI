@@ -44,6 +44,7 @@ class XRayGenerator(nn.Module):
         self.pipeline.set_progress_bar_config(disable=True)
 
         self.unet = self.pipeline.unet
+        self.tokenizer = self.pipeline.tokenizer
         self.text_encoder = self.pipeline.text_encoder
         self.vae = self.pipeline.vae
 
@@ -100,10 +101,10 @@ class XRayGenerator(nn.Module):
         return images.clamp(0, 1)
 
     def save_model(self, path):
-        self.pipeline.unet.save_pretrained(path)
+        self.pipeline.save_pretrained(path)
 
     def load_model(self, path):
-        self.pipeline.unet.from_pretrained(path)
+        self.pipeline.from_pretrained(path)
 
     # def encode_images(self, images):
     #     with torch.no_grad():

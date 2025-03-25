@@ -30,7 +30,7 @@ class Trainer:
 
         self.unet = model.unet
         self.text_encoder = model.text_encoder
-        self.tokenizer = model.pipeline.tokenizer
+        self.tokenizer = model.tokenizer
         self.vae = model.vae
         self.noise_scheduler = model.pipeline.scheduler
 
@@ -101,7 +101,7 @@ class Trainer:
         print(f"Total training time: {int(hours)} hours {int(minutes)} minutes {int(seconds):.2f} seconds")
         self._plot_training_progress(train_losses, val_losses, ssim_scores)
 
-        print("\nTraining complete. Running final test on the best model from {self.best_model_info['path']}...\n")
+        print(f"Training complete. Running final test on the best model from {best_model_info['path']}...\n")
         self.model.load_model(best_model_info["path"])
         test_loader = kfold_loaders[0]['test_loader']
         test_loss, test_ssim = self._test_epoch(test_loader, ssim_metric)
@@ -171,9 +171,7 @@ class Trainer:
 
     def _compute_test_loss(self, generated_images, real_images):
         with torch.no_grad():
-            mse_loss = torch.nn.functional.mse_loss(generated_images, real_images)
-            l1_loss = torch.nn.functional.l1_loss(generated_images, real_images)
-            loss = 0.8 * mse_loss + 0.2 * l1_loss
+            loss = torch.nn.functional.mse_loss(generated_images, real_images)
         return loss
 
     def _train_step(self, images, texts):
@@ -211,9 +209,7 @@ class Trainer:
             encoder_hidden_states=text_embeddings
         ).sample
 
-        mse_loss = torch.nn.functional.mse_loss(noise_pred, noise)
-        l1_loss = torch.nn.functional.l1_loss(noise_pred, noise)
-        loss = 0.8 * mse_loss + 0.2 * l1_loss
+        loss = torch.nn.functional.mse_loss(noise_pred, noise)
         return loss
 
     def _plot_training_progress(self, train_losses, val_losses, ssim_scores):
