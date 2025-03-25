@@ -48,7 +48,7 @@ class XRayGenerator(nn.Module):
         model_id = "zer0int/LongCLIP-GmP-ViT-L-14"
         config = CLIPConfig.from_pretrained(model_id)
         config.text_config.max_position_embeddings = 248
-        clip_model = CLIPModel.from_pretrained(model_id, torch_dtype=torch.bfloat16, config=config)
+        clip_model = CLIPModel.from_pretrained(model_id, torch_dtype=torch.bfloat16, config=config).to(device)
         clip_processor = CLIPProcessor.from_pretrained(model_id, padding="max_length", max_length=248)
 
         self.tokenizer = clip_processor.tokenizer  # Replace with the CLIP tokenizer
