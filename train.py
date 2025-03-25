@@ -101,7 +101,7 @@ class Trainer:
         self._plot_training_progress(train_losses, val_losses, ssim_scores)
 
         print("\nTraining complete. Running final test on the best model from {self.best_model_info['path']}...\n")
-        self.model.load_model(self.best_model_info["path"])
+        self.model.load_model(best_model_info["path"])
         test_loader = kfold_loaders[0]['test_loader']
         test_loss, test_ssim = self._test_epoch(test_loader, ssim_metric)
         print(f"Final Test - Loss: {test_loss:.4f}, SSIM: {test_ssim:.4f}")
