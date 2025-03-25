@@ -186,7 +186,7 @@ class Trainer:
             prompts,
             padding="max_length",
             truncation=True,
-            max_length=77,
+            max_length=248,  # 77 by default
             return_tensors="pt"
         ).to(self.device)
 
