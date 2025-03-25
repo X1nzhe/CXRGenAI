@@ -105,10 +105,10 @@ class XRayGenerator(nn.Module):
 
     def save_model(self, path):
         self.pipeline.unet = self.unet
-        self.pipeline.save_pretrained(path)
+        self.pipeline.save_pretrained(path, safe_serialization=True)
 
     def load_model(self, path):
-        self.pipeline = StableDiffusionPipeline.from_pretrained(path)
+        self.pipeline = StableDiffusionPipeline.from_pretrained(path, use_safetensors=True)
 
     # def encode_images(self, images):
     #     with torch.no_grad():
