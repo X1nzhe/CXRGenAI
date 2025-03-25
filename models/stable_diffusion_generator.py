@@ -44,7 +44,7 @@ class XRayGenerator(nn.Module):
         ).to(device)
         self.pipeline.set_progress_bar_config(disable=True)
 
-        self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14").to(device)
+        self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
         self.text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device)
         self.pipeline.tokenizer = self.tokenizer
         self.pipeline.text_encoder = self.text_encoder
