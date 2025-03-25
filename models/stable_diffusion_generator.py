@@ -54,7 +54,7 @@ class XRayGenerator(nn.Module):
         self.tokenizer = clip_processor.tokenizer  # Replace with the CLIP tokenizer
         self.text_encoder = clip_model.text_model  # Replace with the CLIP text encoder
         self.pipeline.tokenizer_max_length = 248
-        self.pipeline.text_encoder.dtype = torch.bfloat16
+        # self.pipeline.text_encoder.dtype = torch.bfloat16 #Not need
 
         # self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
         # self.text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device)
