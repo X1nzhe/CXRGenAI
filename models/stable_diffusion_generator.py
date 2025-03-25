@@ -7,6 +7,7 @@ from torch import nn
 import torchvision.transforms as transforms
 from diffusers import StableDiffusionPipeline
 from diffusers.utils import logging as diffusers_logging
+from transformers import CLIPTokenizer, CLIPTextModel
 
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
@@ -43,9 +44,14 @@ class XRayGenerator(nn.Module):
         ).to(device)
         self.pipeline.set_progress_bar_config(disable=True)
 
+        self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14").to(device)
+        self.text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device)
+        self.pipeline.tokenizer = self.tokenizer
+        self.pipeline.text_encoder = self.text_encoder
+        # Default CLIP
+        # self.tokenizer = self.pipeline.tokenizer
+        # self.text_encoder = self.pipeline.text_encoder
         self.unet = self.pipeline.unet
-        self.tokenizer = self.pipeline.tokenizer
-        self.text_encoder = self.pipeline.text_encoder
         self.vae = self.pipeline.vae
 
     def generate_and_save_image(self, prompt, steps=NUM_INFERENCE_STEPS, resolution=IMAGE_HEIGHT):
