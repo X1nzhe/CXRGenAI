@@ -80,7 +80,7 @@ class Trainer:
                     best_val_loss = val_loss
                     best_model_info["fold"] = fold
                     best_model_info["epoch"] = epoch
-                    best_model_info["path"] = os.path.join(self.checkpoint_dir, f"best_model.pth")
+                    best_model_info["path"] = os.path.join(self.checkpoint_dir, f"best_model")
 
                     self.model.save_model(best_model_info["path"])
                     print(
