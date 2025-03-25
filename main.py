@@ -2,7 +2,7 @@ import argparse
 import sys
 
 
-from config import BASE_PROMPT
+from config import BASE_PROMPT_PREFIX, BASE_PROMPT_SUFFIX
 from models.stable_diffusion_generator import XRayGenerator
 from train import Trainer
 # from evaluate import Evaluator
@@ -45,7 +45,7 @@ def main():
             sys.exit(1)
 
         prompt = [
-            f"{BASE_PROMPT}{args.description}"
+            f"{BASE_PROMPT_PREFIX}{args.description}{BASE_PROMPT_SUFFIX}"
         ]
         generated_image_path = model.generate_and_save_image(prompt)
         print(f"Generated X-Ray image saved.\n")
