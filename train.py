@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from peft import get_peft_model, LoraConfig, prepare_model_for_kbit_training
 import time
 
-from config import CHECKPOINTS_DIR, BASE_PROMPT
+from config import CHECKPOINTS_DIR, BASE_PROMPT, BATCH_SIZE, EPOCHS, LEARNING_RATE
 from data_loader import get_dataloader
 
 
@@ -23,7 +23,8 @@ def prepare_lora_model_for_training(model):
 
 
 class Trainer:
-    def __init__(self, model, k_fold=5, batch_size=8, epochs=5, lr=1e-4, checkpoint_dir=CHECKPOINTS_DIR):
+    def __init__(self, model, k_fold=5, batch_size=BATCH_SIZE, epochs=EPOCHS,
+                 lr=LEARNING_RATE, checkpoint_dir=CHECKPOINTS_DIR):
         self.model = prepare_lora_model_for_training(model)
         self.device = model.device
 
