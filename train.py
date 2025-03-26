@@ -205,6 +205,7 @@ class Trainer:
         with torch.no_grad():
             latents = self.vae.encode(images).latent_dist.sample()
             latents = latents * 0.18215
+            latents = latents.to(self.unet.dtype)
         prompts = [
             f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
         ]
@@ -218,7 +219,7 @@ class Trainer:
 
         text_embeddings = self.text_encoder(input_ids=text_inputs.input_ids.to(self.device),
                                             attention_mask=text_inputs.attention_mask.to(self.device)
-                                            ).last_hidden_state
+                                            ).last_hidden_state.to(self.unet.dtype)
 
         timesteps = torch.randint(
             0, self.noise_scheduler.num_train_timesteps,
@@ -235,7 +236,7 @@ class Trainer:
             encoder_hidden_states=text_embeddings
         ).sample
 
-        loss = torch.nn.functional.mse_loss(noise_pred, noise)
+        loss = torch.nn.functional.mse_loss(noise_pred.to(noise.dtype), noise)
         return loss
 
     def _plot_training_progress(self, train_losses, val_losses, ssim_scores):
