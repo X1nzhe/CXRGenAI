@@ -111,7 +111,7 @@ class XRayGenerator(nn.Module):
     #     del self.pipeline
     #     torch.cuda.empty_cache()
     #     self.pipeline = StableDiffusionPipeline.from_pretrained(path).to(self.device)
-    def _load_model(self, path):
+    def load_model(self, path):
         unet = UNet2DConditionModel.from_pretrained(path + "/unet")
         text_encoder = CLIPTextModel.from_pretrained(path + "/text_encoder")
         lora_unet = prepare_lora_model_for_training(unet)
