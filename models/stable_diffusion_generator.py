@@ -103,7 +103,6 @@ class XRayGenerator(nn.Module):
         return images.clamp(0, 1)
 
     def save_model(self, path):
-        self.pipeline.unet = self.unet.merge_and_unload()
         self.pipeline.save_pretrained(path)
 
     def load_model(self, path):

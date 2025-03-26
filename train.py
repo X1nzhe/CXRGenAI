@@ -1,5 +1,6 @@
 import os
 import torch
+from diffusers import StableDiffusionPipeline
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -86,7 +87,8 @@ class Trainer:
                         f"best_model_fold{fold}_epoch{epoch}"
                     )
 
-                    self.model.save_model(best_model_info["path"])
+                    # self.model.save_model(best_model_info["path"])
+                    self._save_model(best_model_info["path"])
                     print(
                         f"Best model updated: Fold {fold}, Epoch {epoch}, "
                         f"Val Loss {val_loss:.4f}, saved to {best_model_info['path']}")
@@ -106,7 +108,7 @@ class Trainer:
         self._plot_training_progress(train_losses, val_losses, ssim_scores)
 
         print(f"Training complete. Running final test on the best model from {best_model_info['path']}...\n")
-        self.model.load_model(best_model_info["path"])
+        self._load_model(best_model_info["path"])
         test_loader = kfold_loaders[0]['test_loader']
         test_loss, test_ssim = self._test_epoch(test_loader, ssim_metric)
         print(f"Final Test - Loss: {test_loss:.4f}, SSIM: {test_ssim:.4f}")
@@ -235,3 +237,21 @@ class Trainer:
 
         plt.savefig(os.path.join(self.checkpoint_dir, "training_progress.png"))
         plt.show()
+
+    def _save_model(self, path):
+        self.model.unet = self.model.unet.merge_and_unload()
+        self.model.save_pretrained(path)
+
+    def _load_model(self, path):
+        self.pipeline = StableDiffusionPipeline.from_pretrained(path)
+
+        if hasattr(self.pipeline.unet, 'merge_and_unload'):
+            self.pipeline.unet = self.pipeline.unet.merge_and_unload()
+
+        self.model = prepare_lora_model_for_training(self.pipeline)
+
+        self.unet = self.model.unet
+        self.text_encoder = self.model.text_encoder
+        self.tokenizer = self.model.tokenizer
+        self.vae = self.model.vae
+        self.noise_scheduler = self.model.pipeline.scheduler
