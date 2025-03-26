@@ -15,13 +15,16 @@ from data_loader import get_dataloader
 def prepare_lora_model_for_training(model):
     model = prepare_model_for_kbit_training(model)
     lora_config = LoraConfig(
-        r=4,
-        lora_alpha=8,
+        r=8,
+        lora_alpha=16,
         lora_dropout=0.2,
-        target_modules=["to_k", "to_q", "to_v", "to_out.0"],
+        target_modules=["q_proj", "v_proj", "k_proj", "out_proj", # For Text encoder
+                        "to_k", "to_q", "to_v", "to_out.0"], # For UNET
         modules_to_save=["conv_in"]
     )
-    return get_peft_model(model, lora_config)
+    model.unet = get_peft_model(model.unet, lora_config)
+    model.text_encoder = get_peft_model(model.text_encoder, lora_config)
+    return model
 
 
 class Trainer:
@@ -37,7 +40,7 @@ class Trainer:
         self.noise_scheduler = model.pipeline.scheduler
 
         self.unet.enable_gradient_checkpointing()
-        self.text_encoder.requires_grad_(False)
+        self.text_encoder.enable_gradient_checkpointing()
         self.vae.requires_grad_(False)
 
         self.k_fold = k_fold
@@ -64,8 +67,16 @@ class Trainer:
             val_loader = fold_data['val_loader']
 
             print(f"\nStarting training for Fold {fold}...")
-            optimizer = torch.optim.AdamW(self.unet.parameters(), lr=self.lr)
+            unet_lora_layers = [p for p in self.unet.parameters() if p.requires_grad]
+            text_encoder_lora_layers = [p for p in self.text_encoder.parameters() if p.requires_grad]
+            trainable_params = [
+                {"params": unet_lora_layers, "lr": self.lr},
+                {"params": text_encoder_lora_layers, "lr": self.lr}
+            ]
+            optimizer = torch.optim.AdamW(trainable_params)
+            # optimizer = torch.optim.AdamW(self.unet.parameters(), lr=self.lr)
             self.unet.train()
+            self.text_encoder.train()
 
             for epoch in range(self.epochs):
                 train_loss = self._train_epoch(train_loader, optimizer, fold, epoch)
@@ -133,7 +144,8 @@ class Trainer:
 
     def _validate_epoch(self, val_loader, ssim_metric, fold, epoch):
         total_loss, total_ssim, num_batches = 0.0, 0.0, 0
-        self.model.pipeline.unet.eval()
+        self.unet.eval()
+        self.text_encoder.eval()
 
         with torch.no_grad():
             for batch in tqdm(val_loader, desc=f"Validating Fold {fold} - Epoch {epoch}"):
@@ -155,14 +167,15 @@ class Trainer:
 
     def _test_epoch(self, test_loader, ssim_metric):
         total_loss, total_ssim, num_batches = 0.0, 0.0, 0
-        self.model.pipeline.unet.eval()
+        self.unet.eval()
+        self.text_encoder.eval()
 
         with torch.no_grad():
             for batch in tqdm(test_loader, desc=f"Testing"):
                 real_images, texts = batch['image'], batch['report']
 
                 real_images = real_images.to(self.device)
-                if real_images.dtype == torch.uint8: # normalize to the range [0, 1]
+                if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
                     real_images = real_images.float() / 255.0
                 prompts = [
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
@@ -247,11 +260,11 @@ class Trainer:
 
         if hasattr(self.pipeline.unet, 'merge_and_unload'):
             self.pipeline.unet = self.pipeline.unet.merge_and_unload()
+        if hasattr(self.pipeline.text_encoder, 'merge_and_unload'):
+            self.pipeline.text_encoder = self.pipeline.text_encoder.merge_and_unload()
 
-        self.model = prepare_lora_model_for_training(self.pipeline)
-
-        self.unet = self.model.unet
-        self.text_encoder = self.model.text_encoder
-        self.tokenizer = self.model.tokenizer
-        self.vae = self.model.vae
-        self.noise_scheduler = self.model.pipeline.scheduler
+        self.unet = self.pipeline.unet
+        self.text_encoder = self.pipeline.text_encoder
+        self.tokenizer = self.pipeline.tokenizer
+        self.vae = self.pipeline.vae
+        self.noise_scheduler = self.pipeline.scheduler
