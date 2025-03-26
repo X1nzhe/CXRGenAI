@@ -239,8 +239,8 @@ class Trainer:
         plt.show()
 
     def _save_model(self, path):
-        self.model.unet = self.model.unet.merge_and_unload()
-        self.model.save_pretrained(path)
+        model = self.model.merge_and_unload()
+        model.save_pretrained(path)
 
     def _load_model(self, path):
         self.pipeline = StableDiffusionPipeline.from_pretrained(path)
