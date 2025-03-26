@@ -15,7 +15,8 @@ from data_loader import get_dataloader
 
 
 def prepare_lora_model_for_training(pipeline):
-    pipeline = prepare_model_for_kbit_training(pipeline)
+    pipeline.unet = prepare_model_for_kbit_training(pipeline.unet)
+    pipeline.text_encoder = prepare_model_for_kbit_training(pipeline.text_encoder)
     lora_config = LoraConfig(
         r=8,
         lora_alpha=16,
