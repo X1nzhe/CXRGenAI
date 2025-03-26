@@ -1,4 +1,7 @@
 import os
+
+from peft import PeftModel
+
 from config import IMAGES_DIR, IMAGE_HEIGHT, IMAGE_WIDTH, NUM_INFERENCE_STEPS
 from datetime import datetime
 
@@ -112,16 +115,20 @@ class XRayGenerator(nn.Module):
     #     torch.cuda.empty_cache()
     #     self.pipeline = StableDiffusionPipeline.from_pretrained(path).to(self.device)
     def load_model(self, path):
-        unet = UNet2DConditionModel.from_pretrained(path + "/unet")
-        text_encoder = CLIPTextModel.from_pretrained(path + "/text_encoder")
-        lora_unet = prepare_lora_model_for_training(unet)
-        lora_text_encoder = prepare_lora_model_for_training(text_encoder)
+        # unet = UNet2DConditionModel.from_pretrained(path + "/unet")
+        # text_encoder = CLIPTextModel.from_pretrained(path + "/text_encoder")
+        unet = PeftModel.from_pretrained(path + "/unet")
+        text_encoder = PeftModel.from_pretrained(path + "/text_encoder")
+        text_encoder = text_encoder.merge_and_unload()
+        unet = unet.merge_and_unload()
+        # lora_unet = prepare_lora_model_for_training(unet)
+        # lora_text_encoder = prepare_lora_model_for_training(text_encoder)
         pipeline = StableDiffusionPipeline.from_pretrained(
             "CompVis/stable-diffusion-v1-4",
             torch_dtype=torch.float16,
         ).to(self.device)
-        pipeline.unet = lora_unet
-        pipeline.text_encoder = lora_text_encoder
+        pipeline.unet = unet
+        pipeline.text_encoder = text_encoder
         model = XRayGenerator()
         model.pipeline = pipeline
         return model
