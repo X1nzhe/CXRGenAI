@@ -160,7 +160,7 @@ class Trainer:
 
                 real_images = real_images.to(self.device)
                 if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
-                    real_images = real_images.float() / 255.0
+                    real_images = (real_images.float() / 255.0).to(self.unet.dtype)
                 prompts = [
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
@@ -183,7 +183,7 @@ class Trainer:
 
                 real_images = real_images.to(self.device)
                 if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
-                    real_images = real_images.float() / 255.0
+                    real_images = (real_images.float() / 255.0).to(self.unet.dtype)
                 prompts = [
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
