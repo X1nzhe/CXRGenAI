@@ -44,6 +44,8 @@ class Trainer:
 
         self.unet.enable_gradient_checkpointing()
         self.text_encoder._set_gradient_checkpointing(True)
+        self.unet.requires_grad_(True)
+        self.text_encoder.requires_grad_(True)
         self.vae.requires_grad_(False)
 
         self.k_fold = k_fold
