@@ -5,12 +5,14 @@ from datetime import datetime
 import torch
 from torch import nn
 import torchvision.transforms as transforms
-from diffusers import StableDiffusionPipeline
+from diffusers import StableDiffusionPipeline, UNet2DConditionModel
 from diffusers.utils import logging as diffusers_logging
 from transformers import CLIPTokenizer, CLIPTextModel, CLIPConfig, CLIPModel, CLIPProcessor
 
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
+
+from train import prepare_lora_model_for_training
 
 
 def add_prompt_to_image(image, prompt, max_chars_per_line=60):
@@ -105,11 +107,22 @@ class XRayGenerator(nn.Module):
     def save_model(self, path):
         self.pipeline.save_pretrained(path)
 
-    def load_model(self, path):
-        del self.pipeline
-        torch.cuda.empty_cache()
-        self.pipeline = StableDiffusionPipeline.from_pretrained(path).to(self.device)
-
+    # def load_model(self, path):
+    #     del self.pipeline
+    #     torch.cuda.empty_cache()
+    #     self.pipeline = StableDiffusionPipeline.from_pretrained(path).to(self.device)
+    def _load_model(self, path):
+        unet = UNet2DConditionModel.from_pretrained(path + "/unet")
+        text_encoder = CLIPTextModel.from_pretrained(path + "/text_encoder")
+        lora_unet = prepare_lora_model_for_training(unet)
+        lora_text_encoder = prepare_lora_model_for_training(text_encoder)
+        pipeline = StableDiffusionPipeline.from_pretrained(
+            "CompVis/stable-diffusion-v1-4",
+            torch_dtype=torch.float16,
+        ).to(self.device)
+        pipeline.unet = lora_unet
+        pipeline.text_encoder = lora_text_encoder
+        return pipeline
     # def encode_images(self, images):
     #     with torch.no_grad():
     #         latents = self.vae.encode(images).latent_dist.sample()

@@ -122,14 +122,14 @@ class Trainer:
         self._plot_training_progress(train_losses, val_losses, ssim_scores)
 
         print(f"Training complete. Running final test on the best model from {best_model_info['path']}...\n")
-        self._load_model(best_model_info["path"])
+        fine_tuned_pipeline = self.model.load_model(best_model_info["path"])
         test_loader = kfold_loaders[0]['test_loader']
         test_loss, test_ssim = self._test_epoch(test_loader, ssim_metric)
         print(f"Final Test - Loss: {test_loss:.4f}, SSIM: {test_ssim:.4f}")
         print(f"Generating some images...")
         for batch in test_loader:
             prompt = batch['report']
-            self.model.generate_and_save_image(prompt)
+            fine_tuned_pipeline.generate_and_save_image(prompt)
             break
 
     def _train_epoch(self, train_loader, optimizer, fold, epoch):
@@ -261,15 +261,4 @@ class Trainer:
     #     model = self.model.merge_and_unload()
     #     model.save_pretrained(path)
 
-    def _load_model(self, path):
-        unet = UNet2DConditionModel.from_pretrained(path + "/unet")
-        text_encoder = CLIPTextModel.from_pretrained(path + "/text_encoder")
-        unet = prepare_lora_model_for_training(unet)
-        text_encoder = prepare_lora_model_for_training(text_encoder)
-        return StableDiffusionPipeline(
-            unet=unet,
-            text_encoder=text_encoder,
-            vae=self.vae,
-            tokenizer=self.tokenizer,
-            scheduler=self.noise_scheduler,
-        )
+
