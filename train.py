@@ -43,7 +43,7 @@ class Trainer:
         self.noise_scheduler = lora_pipeline.scheduler
 
         self.unet.enable_gradient_checkpointing()
-        self.text_encoder.enable_gradient_checkpointing()
+        self.text_encoder._set_gradient_checkpointing(True)
         self.vae.requires_grad_(False)
 
         self.k_fold = k_fold
