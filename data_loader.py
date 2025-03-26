@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 import re
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
-from config import DATA_DIR, IMAGE_WIDTH, IMAGE_HEIGHT
+from config import DATA_DIR, IMAGE_WIDTH, IMAGE_HEIGHT, K_FOLDS
 
 # Indiana University Chest X-ray Collection dataset
 PNGS_FILENAME = "NLMCXR_png.tgz"
@@ -245,7 +245,7 @@ class XRayDataset(Dataset):
             }
 
 
-def get_dataloader(k_folds=5, batch_size=8, test_split=0.2, random_seed=123):
+def get_dataloader(k_folds=K_FOLDS, batch_size=8, test_split=0.2, random_seed=123):
 
     class ImageResize:
         def __init__(self, target_width, target_height):

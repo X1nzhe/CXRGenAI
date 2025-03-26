@@ -10,7 +10,7 @@ import time
 from transformers import CLIPTextModel
 
 from config import CHECKPOINTS_DIR, BATCH_SIZE, EPOCHS, LEARNING_RATE, BASE_PROMPT_PREFIX, \
-    BASE_PROMPT_SUFFIX
+    BASE_PROMPT_SUFFIX, K_FOLDS
 from data_loader import get_dataloader
 
 
@@ -31,7 +31,7 @@ def prepare_lora_model_for_training(pipeline):
 
 
 class Trainer:
-    def __init__(self, model, k_fold=5, batch_size=BATCH_SIZE, epochs=EPOCHS,
+    def __init__(self, model, k_fold=K_FOLDS, batch_size=BATCH_SIZE, epochs=EPOCHS,
                  lr=LEARNING_RATE, checkpoint_dir=CHECKPOINTS_DIR):
         self.model = model
         self.model.pipeline = prepare_lora_model_for_training(model.pipeline)
