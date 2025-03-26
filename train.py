@@ -225,7 +225,7 @@ class Trainer:
                                             ).last_hidden_state.to(self.unet.dtype)
 
         timesteps = torch.randint(
-            0, self.noise_scheduler.num_train_timesteps,
+            0, self.noise_scheduler.config.num_train_timesteps,
             (latents.shape[0],),
             device=self.device
         ).long()
