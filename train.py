@@ -1,43 +1,45 @@
 import os
 import torch
-from diffusers import StableDiffusionPipeline
+from diffusers import StableDiffusionPipeline, UNet2DConditionModel
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from peft import get_peft_model, LoraConfig, prepare_model_for_kbit_training
 import time
 
+from transformers import CLIPTextModel
+
 from config import CHECKPOINTS_DIR, BATCH_SIZE, EPOCHS, LEARNING_RATE, BASE_PROMPT_PREFIX, \
     BASE_PROMPT_SUFFIX
 from data_loader import get_dataloader
 
 
-def prepare_lora_model_for_training(model):
-    model = prepare_model_for_kbit_training(model)
+def prepare_lora_model_for_training(pipeline):
+    pipeline = prepare_model_for_kbit_training(pipeline)
     lora_config = LoraConfig(
         r=8,
         lora_alpha=16,
         lora_dropout=0.2,
-        target_modules=["q_proj", "v_proj", "k_proj", "out_proj", # For Text encoder
-                        "to_k", "to_q", "to_v", "to_out.0"], # For UNET
+        target_modules=["q_proj", "v_proj", "k_proj", "out_proj",  # For Text encoder
+                        "to_k", "to_q", "to_v", "to_out.0"],  # For UNET
         modules_to_save=["conv_in"]
     )
-    model.unet = get_peft_model(model.unet, lora_config)
-    model.text_encoder = get_peft_model(model.text_encoder, lora_config)
-    return model
+    pipeline.unet = get_peft_model(pipeline.unet, lora_config)
+    pipeline.text_encoder = get_peft_model(pipeline.text_encoder, lora_config)
+    return pipeline
 
 
 class Trainer:
     def __init__(self, model, k_fold=5, batch_size=BATCH_SIZE, epochs=EPOCHS,
                  lr=LEARNING_RATE, checkpoint_dir=CHECKPOINTS_DIR):
-        self.model = prepare_lora_model_for_training(model)
+        lora_pipeline = prepare_lora_model_for_training(model.pipeline)
         self.device = model.device
 
-        self.unet = model.unet
-        self.text_encoder = model.text_encoder
-        self.tokenizer = model.tokenizer
-        self.vae = model.vae
-        self.noise_scheduler = model.pipeline.scheduler
+        self.unet = lora_pipeline.unet
+        self.text_encoder = lora_pipeline.text_encoder
+        self.tokenizer = lora_pipeline.tokenizer
+        self.vae = lora_pipeline.vae
+        self.noise_scheduler = lora_pipeline.scheduler
 
         self.unet.enable_gradient_checkpointing()
         self.text_encoder.enable_gradient_checkpointing()
@@ -99,7 +101,8 @@ class Trainer:
                     )
 
                     # self.model.save_model(best_model_info["path"])
-                    self._save_model(best_model_info["path"])
+                    self.unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
+                    self.text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
                     print(
                         f"Best model updated: Fold {fold}, Epoch {epoch}, "
                         f"Val Loss {val_loss:.4f}, saved to {best_model_info['path']}")
@@ -130,6 +133,9 @@ class Trainer:
             break
 
     def _train_epoch(self, train_loader, optimizer, fold, epoch):
+        self.unet.train()
+        self.text_encoder.train()
+
         total_loss, num_batches = 0.0, 0
         for batch in tqdm(train_loader, desc=f"Training Fold {fold} - Epoch {epoch}"):
             images, texts = batch['image'], batch['report']
@@ -251,20 +257,19 @@ class Trainer:
         plt.savefig(os.path.join(self.checkpoint_dir, "training_progress.png"))
         plt.show()
 
-    def _save_model(self, path):
-        model = self.model.merge_and_unload()
-        model.save_pretrained(path)
+    # def _save_model(self, path):
+    #     model = self.model.merge_and_unload()
+    #     model.save_pretrained(path)
 
     def _load_model(self, path):
-        self.pipeline = StableDiffusionPipeline.from_pretrained(path)
-
-        if hasattr(self.pipeline.unet, 'merge_and_unload'):
-            self.pipeline.unet = self.pipeline.unet.merge_and_unload()
-        if hasattr(self.pipeline.text_encoder, 'merge_and_unload'):
-            self.pipeline.text_encoder = self.pipeline.text_encoder.merge_and_unload()
-
-        self.unet = self.pipeline.unet
-        self.text_encoder = self.pipeline.text_encoder
-        self.tokenizer = self.pipeline.tokenizer
-        self.vae = self.pipeline.vae
-        self.noise_scheduler = self.pipeline.scheduler
+        unet = UNet2DConditionModel.from_pretrained(path + "/unet")
+        text_encoder = CLIPTextModel.from_pretrained(path + "/text_encoder")
+        unet = prepare_lora_model_for_training(unet)
+        text_encoder = prepare_lora_model_for_training(text_encoder)
+        return StableDiffusionPipeline(
+            unet=unet,
+            text_encoder=text_encoder,
+            vae=self.vae,
+            tokenizer=self.tokenizer,
+            scheduler=self.noise_scheduler,
+        )
