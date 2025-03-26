@@ -122,7 +122,9 @@ class XRayGenerator(nn.Module):
         ).to(self.device)
         pipeline.unet = lora_unet
         pipeline.text_encoder = lora_text_encoder
-        return pipeline
+        model = XRayGenerator()
+        model.pipeline = pipeline
+        return model
     # def encode_images(self, images):
     #     with torch.no_grad():
     #         latents = self.vae.encode(images).latent_dist.sample()

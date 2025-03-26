@@ -33,14 +33,15 @@ def prepare_lora_model_for_training(pipeline):
 class Trainer:
     def __init__(self, model, k_fold=5, batch_size=BATCH_SIZE, epochs=EPOCHS,
                  lr=LEARNING_RATE, checkpoint_dir=CHECKPOINTS_DIR):
-        lora_pipeline = prepare_lora_model_for_training(model.pipeline)
+        self.model = model
+        self.model.pipeline = prepare_lora_model_for_training(model.pipeline)
         self.device = model.device
 
-        self.unet = lora_pipeline.unet
-        self.text_encoder = lora_pipeline.text_encoder
-        self.tokenizer = lora_pipeline.tokenizer
-        self.vae = lora_pipeline.vae
-        self.noise_scheduler = lora_pipeline.scheduler
+        self.unet = self.model.pipeline.unet
+        self.text_encoder = self.model.pipeline.text_encoder
+        self.tokenizer = self.model.pipeline.tokenizer
+        self.vae = self.model.pipeline.vae
+        self.noise_scheduler = self.model.pipeline.scheduler
 
         self.unet.enable_gradient_checkpointing()
         self.text_encoder._set_gradient_checkpointing(True)
@@ -125,14 +126,14 @@ class Trainer:
         self._plot_training_progress(train_losses, val_losses, ssim_scores)
 
         print(f"Training complete. Running final test on the best model from {best_model_info['path']}...\n")
-        fine_tuned_pipeline = self.model.load_model(best_model_info["path"])
+        finetuned_model = self.model.load_model(best_model_info["path"])
         test_loader = kfold_loaders[0]['test_loader']
         test_loss, test_ssim = self._test_epoch(test_loader, ssim_metric)
         print(f"Final Test - Loss: {test_loss:.4f}, SSIM: {test_ssim:.4f}")
         print(f"Generating some images...")
         for batch in test_loader:
             prompt = batch['report']
-            fine_tuned_pipeline.generate_and_save_image(prompt)
+            finetuned_model.generate_and_save_image(prompt)
             break
 
     def _train_epoch(self, train_loader, optimizer, fold, epoch):
