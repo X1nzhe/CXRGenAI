@@ -40,7 +40,6 @@ class XRayGenerator(nn.Module):
         self.pipeline = StableDiffusionPipeline.from_pretrained(
             model_name,
             torch_dtype=torch.float16,
-            use_safetensors=True,
         ).to(device)
         self.pipeline.set_progress_bar_config(disable=True)
 
@@ -105,10 +104,12 @@ class XRayGenerator(nn.Module):
 
     def save_model(self, path):
         self.pipeline.unet = self.unet.merge_and_unload()
-        self.pipeline.save_pretrained(path, safe_serialization=True)
+        self.pipeline.save_pretrained(path)
 
     def load_model(self, path):
-        self.pipeline = StableDiffusionPipeline.from_pretrained(path, use_safetensors=True)
+        del self.pipeline
+        torch.cuda.empty_cache()
+        self.pipeline = StableDiffusionPipeline.from_pretrained(path).to(self.device)
 
     # def encode_images(self, images):
     #     with torch.no_grad():
