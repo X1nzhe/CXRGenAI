@@ -118,27 +118,19 @@ class XRayGenerator(nn.Module):
         # unet = UNet2DConditionModel.from_pretrained(path + "/unet")
         # text_encoder = CLIPTextModel.from_pretrained(path + "/text_encoder")
         text_encoder = CLIPTextModel.from_pretrained(
-            path,
-            torch_dtype=torch.float16,
-            subfolder="text_encoder"
-        )
+            os.path.join(path, "text_encoder")
+        ).to(self.device)
         unet = UNet2DConditionModel.from_pretrained(
-            path,
-            torch_dtype=torch.float16,
-            subfolder="unet"
-        )
-        lora_unet = PeftModel.from_pretrained(unet, path + "/unet")
-        lora_text_encoder = PeftModel.from_pretrained(text_encoder, path + "/text_encoder")
-        merged_text_encoder = lora_text_encoder.merge_and_unload()
-        merged_unet = lora_unet.merge_and_unload()
+            os.path.join(path, "unet")
+        ).to(self.device)
         # lora_unet = prepare_lora_model_for_training(unet)
         # lora_text_encoder = prepare_lora_model_for_training(text_encoder)
         pipeline = StableDiffusionPipeline.from_pretrained(
             "CompVis/stable-diffusion-v1-4",
             torch_dtype=torch.float16,
         ).to(self.device)
-        pipeline.unet = merged_unet
-        pipeline.text_encoder = merged_text_encoder
+        pipeline.unet = unet
+        pipeline.text_encoder = text_encoder
         model = XRayGenerator()
         model.pipeline = pipeline
         return model

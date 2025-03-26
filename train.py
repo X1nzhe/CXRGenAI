@@ -105,8 +105,10 @@ class Trainer:
                     )
 
                     # self.model.save_model(best_model_info["path"])
-                    self.unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
-                    self.text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
+                    merged_unet = self.unet.merge_and_unload()
+                    merged_text_encoder = self.text_encoder.merge_and_unload()
+                    merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
+                    merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
                     print(
                         f"Best model updated: Fold {fold}, Epoch {epoch}, "
                         f"Val Loss {val_loss:.4f}, saved to {best_model_info['path']}")
