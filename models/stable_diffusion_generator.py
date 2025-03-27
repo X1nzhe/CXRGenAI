@@ -2,13 +2,13 @@ import os
 
 from peft import PeftModel
 
-from config import IMAGES_DIR, IMAGE_HEIGHT, IMAGE_WIDTH, NUM_INFERENCE_STEPS
+from config import IMAGES_DIR, IMAGE_HEIGHT, IMAGE_WIDTH, NUM_INFERENCE_STEPS, WEIGHT_DTYPE
 from datetime import datetime
 
 import torch
 from torch import nn
 import torchvision.transforms as transforms
-from diffusers import StableDiffusionPipeline, UNet2DConditionModel
+from diffusers import StableDiffusionPipeline, UNet2DConditionModel, AutoencoderKL
 from diffusers.utils import logging as diffusers_logging
 from transformers import CLIPTokenizer, CLIPTextModel, CLIPConfig, CLIPModel, CLIPProcessor
 
@@ -44,7 +44,7 @@ class XRayGenerator(nn.Module):
         self.device = device
         self.pipeline = StableDiffusionPipeline.from_pretrained(
             model_name,
-        ).to(device)
+        ).to(device, dtype=WEIGHT_DTYPE)
         self.pipeline.set_progress_bar_config(disable=True)
 
         # Default CLIP
@@ -105,8 +105,8 @@ class XRayGenerator(nn.Module):
             images = outputs.images  # [batch, 1, 512, 512]
         return images.clamp(0, 1)
 
-    def save_model(self, path):
-        self.pipeline.save_pretrained(path)
+    # def save_model(self, path):
+    #     self.pipeline.save_pretrained(path)
 
     # def load_model(self, path):
     #     del self.pipeline

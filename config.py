@@ -27,7 +27,7 @@ IMAGES_DIR = os.path.abspath(os.path.join(BASE_DIR, ".", "images"))
 DATA_DIR = os.path.abspath(os.path.join(BASE_DIR, ".", "data"))
 CHECKPOINTS_DIR = os.path.abspath(os.path.join(BASE_DIR, ".", "checkpoints"))
 
-
+WEIGHT_DTYPE = torch.bfloat16
 
 BASE_PROMPT_PREFIX = f"Chest X-ray, radiology scan. Dx: "
 BASE_PROMPT_SUFFIX = f". Clear anatomy, high-contrast grayscale."

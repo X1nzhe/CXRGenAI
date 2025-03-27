@@ -18,9 +18,9 @@ def prepare_lora_model_for_training(pipeline):
     pipeline.unet = prepare_model_for_kbit_training(pipeline.unet)
     pipeline.text_encoder = prepare_model_for_kbit_training(pipeline.text_encoder)
     lora_config = LoraConfig(
-        r=8,
+        r=32,
         lora_alpha=16,
-        lora_dropout=0.2,
+        lora_dropout=0,
         target_modules=["q_proj", "v_proj", "k_proj", "out_proj",  # For Text encoder
                         "to_k", "to_q", "to_v", "to_out.0"],  # For UNET
         modules_to_save=["conv_in"]
