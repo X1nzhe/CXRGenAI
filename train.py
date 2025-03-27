@@ -144,8 +144,9 @@ class Trainer:
         print(f"Final Test - Loss: {test_loss:.4f}, SSIM: {test_ssim:.4f}")
         print(f"Generating some images...")
         for batch in test_loader:
-            prompt = batch['report']
-            finetuned_model.generate_and_save_image(prompt)
+            prompts = batch['report']
+            for prompt in prompts:
+                finetuned_model.generate_and_save_image(prompt)
             break
 
     def _train_epoch(self, train_loader, optimizer, fold, epoch):

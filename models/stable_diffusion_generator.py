@@ -94,7 +94,6 @@ class XRayGenerator(nn.Module):
             width=resolution
         ).images[0]
         img_with_text = add_prompt_to_image(generated_image, prompt)
-        # TODO: ADD cheXagent score to image
 
         image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
         image_dir = IMAGES_DIR
@@ -102,6 +101,7 @@ class XRayGenerator(nn.Module):
 
         file_path = os.path.join(image_dir, f"generated_{image_filename}.png")
         img_with_text.save(file_path)
+        print(f"Prompt: {prompt}")
         print(f"Image saved to {file_path}")
 
         return file_path
