@@ -9,18 +9,18 @@ BATCH_SIZE = 8
 LEARNING_RATE = 1e-4
 
 # Test config
-EPOCHS = 1
-K_FOLDS = 2
-IMAGE_WIDTH = 128
-IMAGE_HEIGHT = 128
-NUM_INFERENCE_STEPS = 20
+# EPOCHS = 1
+# K_FOLDS = 2
+# IMAGE_WIDTH = 128
+# IMAGE_HEIGHT = 128
+# NUM_INFERENCE_STEPS = 20
 
 # Product config
-# EPOCHS = 10
-# K_FOLDS = 5
-# IMAGE_WIDTH = 512
-# IMAGE_HEIGHT = 512
-# NUM_INFERENCE_STEPS = 50
+EPOCHS = 10
+K_FOLDS = 5
+IMAGE_WIDTH = 512
+IMAGE_HEIGHT = 512
+NUM_INFERENCE_STEPS = 50
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGES_DIR = os.path.abspath(os.path.join(BASE_DIR, ".", "images"))
