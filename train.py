@@ -208,7 +208,7 @@ class Trainer:
     def _train_step(self, images, texts):
         with torch.no_grad():
             latents = self.vae.encode(images).latent_dist.sample()
-            latents = latents * 0.18215
+            latents = latents * self.vae.config.scaling_factor
         prompts = [
             f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
         ]
