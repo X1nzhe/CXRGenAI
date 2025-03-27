@@ -25,8 +25,8 @@ def prepare_lora_model_for_training(pipeline):
                         "to_k", "to_q", "to_v", "to_out.0"],  # For UNET
         modules_to_save=["conv_in"]
     )
-    pipeline.unet = get_peft_model(pipeline.unet, lora_config)
-    pipeline.text_encoder = get_peft_model(pipeline.text_encoder, lora_config)
+    pipeline.unet = get_peft_model(pipeline.unet, lora_config).to(dtype=torch.float16)
+    pipeline.text_encoder = get_peft_model(pipeline.text_encoder, lora_config).to(dtype=torch.float16)
     return pipeline
 
 

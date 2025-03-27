@@ -58,11 +58,11 @@ class XRayGenerator(nn.Module):
     def generate_and_save_image(self, prompt, steps=NUM_INFERENCE_STEPS, resolution=IMAGE_HEIGHT):
         self.pipeline.vae.to(dtype=torch.float16)
         generated_image = self.pipeline(
-                prompt,
-                num_inference_steps=steps,
-                height=resolution,
-                width=resolution
-            ).images[0]
+            prompt,
+            num_inference_steps=steps,
+            height=resolution,
+            width=resolution
+        ).images[0]
         img_with_text = add_prompt_to_image(generated_image, prompt)
         # TODO: ADD cheXagent score to image
 
@@ -97,15 +97,14 @@ class XRayGenerator(nn.Module):
         if not isinstance(prompts, list):
             prompts = [prompts]
         with torch.no_grad():
-            with torch.autocast(device_type='cuda', dtype=torch.float16):
-                outputs = self.pipeline(
-                    prompts,
-                    num_inference_steps=NUM_INFERENCE_STEPS,
-                    height=IMAGE_HEIGHT,
-                    width=IMAGE_WIDTH,
-                    output_type="pt",
-                )
-                images = outputs.images  # [batch, 1, 512, 512]
+            outputs = self.pipeline(
+                prompts,
+                num_inference_steps=NUM_INFERENCE_STEPS,
+                height=IMAGE_HEIGHT,
+                width=IMAGE_WIDTH,
+                output_type="pt",
+            )
+            images = outputs.images  # [batch, 1, 512, 512]
         return images.clamp(0, 1)
 
     def save_model(self, path):
