@@ -210,7 +210,7 @@ class Trainer:
         with torch.no_grad():
             latents = self.vae.encode(images).latent_dist.sample()
             latents = latents * 0.18215
-            latents = latents.to(self.unet.dtype)
+            latents = latents.to(self.vae.dtype)
         prompts = [
             f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
         ]
