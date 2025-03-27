@@ -19,6 +19,8 @@ from train import prepare_lora_model_for_training
 
 
 def add_prompt_to_image(image, prompt, max_chars_per_line=60):
+    if isinstance(prompt, list):
+        prompt = " ".join(prompt)
     wrapped_text = textwrap.fill(prompt, max_chars_per_line)
     lines = wrapped_text.count('\n') + 1
 
@@ -42,17 +44,43 @@ class XRayGenerator(nn.Module):
         diffusers_logging.disable_progress_bar()
 
         self.device = device
+        # self.pipeline = StableDiffusionPipeline.from_pretrained(
+        #     model_name,
+        # ).to(device)
+        # self.pipeline.set_progress_bar_config(disable=True)
+        #
+        # # Default CLIP
+        # self.tokenizer = self.pipeline.tokenizer
+        # self.text_encoder = self.pipeline.text_encoder
+        #
+        # self.unet = self.pipeline.unet
+        # self.vae = self.pipeline.vae
+
+        self.tokenizer = CLIPTokenizer.from_pretrained(model_name, subfolder="tokenizer")
+        self.text_encoder = CLIPTextModel.from_pretrained(
+            model_name,
+            subfolder="text_encoder",
+            torch_dtype=torch.bfloat16
+        ).to(device)
+        self.unet = UNet2DConditionModel.from_pretrained(
+            model_name,
+            subfolder="unet",
+            torch_dtype=torch.bfloat16
+        ).to(device)
+
+        self.vae = AutoencoderKL.from_pretrained(
+            model_name,
+            subfolder="vae",
+            torch_dtype=torch.float32
+        ).to(device)
+
         self.pipeline = StableDiffusionPipeline.from_pretrained(
             model_name,
+            unet=self.unet,
+            text_encoder=self.text_encoder,
+            vae=self.vae,
+            tokenizer=self.tokenizer
         ).to(device)
-        self.pipeline.set_progress_bar_config(disable=True)
-
-        # Default CLIP
-        self.tokenizer = self.pipeline.tokenizer
-        self.text_encoder = self.pipeline.text_encoder
-
-        self.unet = self.pipeline.unet
-        self.vae = self.pipeline.vae
 
     def generate_and_save_image(self, prompt, steps=NUM_INFERENCE_STEPS, resolution=IMAGE_HEIGHT):
         generated_image = self.pipeline(
