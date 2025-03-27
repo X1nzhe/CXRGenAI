@@ -231,7 +231,6 @@ class Trainer:
             (latents.shape[0],),
             device=self.device
         ).long()
-        timesteps = timesteps.to(self.unet.dtype)
 
         noise = torch.randn_like(latents)
         noisy_latents = self.noise_scheduler.add_noise(latents, noise, timesteps)

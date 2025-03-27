@@ -52,8 +52,8 @@ class XRayGenerator(nn.Module):
         self.tokenizer = self.pipeline.tokenizer
         self.text_encoder = self.pipeline.text_encoder
 
-        self.unet = self.pipeline.unet.to(torch.float16)
-        self.vae = self.pipeline.vae.to(torch.float16)
+        self.unet = self.pipeline.unet
+        self.vae = self.pipeline.vae
 
     def generate_and_save_image(self, prompt, steps=NUM_INFERENCE_STEPS, resolution=IMAGE_HEIGHT):
         self.pipeline.vae.to(dtype=torch.float16)
