@@ -18,8 +18,7 @@ from data_loader import get_dataloader
 def prepare_lora_model_for_training(pipeline):
     # pipeline.unet = prepare_model_for_kbit_training(pipeline.unet)
     # pipeline.text_encoder = prepare_model_for_kbit_training(pipeline.text_encoder)
-    pipeline.unet.to(dtype=torch.bfloat16)
-    pipeline.text_encoder.to(dtype=torch.bfloat16)
+
     lora_config = LoraConfig(
         r=32,
         lora_alpha=16,
@@ -27,10 +26,11 @@ def prepare_lora_model_for_training(pipeline):
         target_modules=["q_proj", "v_proj", "k_proj", "out_proj",  # For Text encoder
                         "to_k", "to_q", "to_v", "to_out.0"],  # For UNET
         modules_to_save=["conv_in"],
-        dtype=torch.bfloat16
     )
     pipeline.unet = get_peft_model(pipeline.unet, lora_config)
     pipeline.text_encoder = get_peft_model(pipeline.text_encoder, lora_config)
+    pipeline.unet.to(dtype=torch.bfloat16)
+    pipeline.text_encoder.to(dtype=torch.bfloat16)
     return pipeline
 
 
