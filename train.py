@@ -1,6 +1,5 @@
 import os
 import torch
-from torch.cuda.amp import GradScaler
 from diffusers import StableDiffusionPipeline, UNet2DConditionModel
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 from tqdm import tqdm
@@ -26,8 +25,8 @@ def prepare_lora_model_for_training(pipeline):
                         "to_k", "to_q", "to_v", "to_out.0"],  # For UNET
         modules_to_save=["conv_in"]
     )
-    pipeline.unet = get_peft_model(pipeline.unet, lora_config).to(dtype=torch.float16)
-    pipeline.text_encoder = get_peft_model(pipeline.text_encoder, lora_config).to(dtype=torch.float16)
+    pipeline.unet = get_peft_model(pipeline.unet, lora_config)
+    pipeline.text_encoder = get_peft_model(pipeline.text_encoder, lora_config)
     return pipeline
 
 
@@ -37,7 +36,7 @@ class Trainer:
         self.model = model
         self.model.pipeline = prepare_lora_model_for_training(model.pipeline)
         self.device = model.device
-        self.scaler = GradScaler()
+
         self.unet = self.model.pipeline.unet
         self.text_encoder = self.model.pipeline.text_encoder
         self.tokenizer = self.model.pipeline.tokenizer
@@ -147,30 +146,10 @@ class Trainer:
         for batch in tqdm(train_loader, desc=f"Training Fold {fold} - Epoch {epoch}"):
             images, texts = batch['image'], batch['report']
             images = images.to(self.device)
-            # loss = self._train_step(images, texts)
-            # self.scaler.scale(loss).backward()
-            # self.scaler.step(optimizer)
-            # self.scaler.update()
-            # optimizer.zero_grad()
-
-            optimizer.zero_grad()
-
             loss = self._train_step(images, texts)
-
-            self.scaler.scale(loss).backward()
-
-            self.scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(
-                self.unet.parameters(),
-                max_norm=1.0
-            )
-            torch.nn.utils.clip_grad_norm_(
-                self.text_encoder.parameters(),
-                max_norm=1.0
-            )
-            self.scaler.step(optimizer)
-            self.scaler.update()
-
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
             total_loss += loss.item()
             num_batches += 1
         return total_loss / max(num_batches, 1)
@@ -186,7 +165,7 @@ class Trainer:
 
                 real_images = real_images.to(self.device)
                 if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
-                    real_images = (real_images.float() / 255.0).to(self.unet.dtype)
+                    real_images = (real_images.float() / 255.0)
                 prompts = [
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
@@ -209,7 +188,7 @@ class Trainer:
 
                 real_images = real_images.to(self.device)
                 if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
-                    real_images = (real_images.float() / 255.0).to(self.unet.dtype)
+                    real_images = (real_images.float() / 255.0)
                 prompts = [
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
@@ -227,43 +206,40 @@ class Trainer:
         return loss
 
     def _train_step(self, images, texts):
-        images = images.to(dtype=torch.float16)
         with torch.no_grad():
-            with torch.cuda.amp.autocast(dtype=torch.float16):
-                latents = self.vae.encode(images).latent_dist.sample()
-                latents = latents * 0.18215
-                latents = latents.to(torch.float16)
-            prompts = [
-                f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
-            ]
-            text_inputs = self.tokenizer(
-                prompts,
-                padding="max_length",
-                truncation=True,
-                max_length=self.tokenizer.model_max_length,  # 77 by default
-                return_tensors="pt"
-            ).to(self.device)
-        with torch.cuda.amp.autocast():
-            text_embeddings = self.text_encoder(input_ids=text_inputs.input_ids.to(self.device),
-                                                attention_mask=text_inputs.attention_mask.to(self.device)
-                                                ).last_hidden_state.to(self.unet.dtype)
+            latents = self.vae.encode(images).latent_dist.sample()
+            latents = latents * 0.18215
+        prompts = [
+            f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
+        ]
+        text_inputs = self.tokenizer(
+            prompts,
+            padding="max_length",
+            truncation=True,
+            max_length=self.tokenizer.model_max_length,  # 77 by default
+            return_tensors="pt"
+        ).to(self.device)
 
-            timesteps = torch.randint(
-                0, self.noise_scheduler.config.num_train_timesteps,
-                (latents.shape[0],),
-                device=self.device
-            ).long()
+        text_embeddings = self.text_encoder(input_ids=text_inputs.input_ids.to(self.device),
+                                            attention_mask=text_inputs.attention_mask.to(self.device)
+                                            ).last_hidden_state
 
-            noise = torch.randn_like(latents)
-            noisy_latents = self.noise_scheduler.add_noise(latents, noise, timesteps)
+        timesteps = torch.randint(
+            0, self.noise_scheduler.config.num_train_timesteps,
+            (latents.shape[0],),
+            device=self.device
+        ).long()
 
-            noise_pred = self.unet(
-                noisy_latents,
-                timesteps,
-                encoder_hidden_states=text_embeddings
-            ).sample
+        noise = torch.randn_like(latents)
+        noisy_latents = self.noise_scheduler.add_noise(latents, noise, timesteps)
 
-            loss = torch.nn.functional.mse_loss(noise_pred.to(noise.dtype), noise)
+        noise_pred = self.unet(
+            noisy_latents,
+            timesteps,
+            encoder_hidden_states=text_embeddings
+        ).sample
+
+        loss = torch.nn.functional.mse_loss(noise_pred, noise)
         return loss
 
     def _plot_training_progress(self, train_losses, val_losses, ssim_scores):
