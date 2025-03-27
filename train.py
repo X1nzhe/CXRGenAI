@@ -76,7 +76,7 @@ class Trainer:
 
         # Record the start time
         start_time = time.time()
-        print(f"\nTraining started at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
+        print(f"\nTraining started at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))} UTC")
         for fold_data in kfold_loaders:
             fold = fold_data['fold']
             train_loader = fold_data['train_loader']
@@ -133,7 +133,7 @@ class Trainer:
         hours = total_time // 3600
         minutes = (total_time % 3600) // 60
         seconds = total_time % 60
-        print(f"\nTraining completed at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
+        print(f"\nTraining completed at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))} UTC")
         print(f"Total training time: {int(hours)} hours {int(minutes)} minutes {int(seconds):.2f} seconds")
         self._plot_training_progress(train_losses, val_losses, ssim_scores)
 
