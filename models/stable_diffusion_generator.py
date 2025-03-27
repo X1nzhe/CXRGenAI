@@ -57,12 +57,13 @@ class XRayGenerator(nn.Module):
 
     def generate_and_save_image(self, prompt, steps=NUM_INFERENCE_STEPS, resolution=IMAGE_HEIGHT):
         self.pipeline.vae.to(dtype=torch.float16)
-        generated_image = self.pipeline(
-            prompt,
-            num_inference_steps=steps,
-            height=resolution,
-            width=resolution
-        ).images[0]
+        with torch.cuda.amp.autocast(dtype=torch.float16):
+            generated_image = self.pipeline(
+                prompt,
+                num_inference_steps=steps,
+                height=resolution,
+                width=resolution
+            ).images[0]
         img_with_text = add_prompt_to_image(generated_image, prompt)
         # TODO: ADD cheXagent score to image
 
@@ -119,10 +120,10 @@ class XRayGenerator(nn.Module):
         # text_encoder = CLIPTextModel.from_pretrained(path + "/text_encoder")
         text_encoder = CLIPTextModel.from_pretrained(
             os.path.join(path, "text_encoder")
-        ).to(self.device)
+        ).to(self.device).to(torch.float16)
         unet = UNet2DConditionModel.from_pretrained(
             os.path.join(path, "unet")
-        ).to(self.device)
+        ).to(self.device).to(torch.float16)
         # lora_unet = prepare_lora_model_for_training(unet)
         # lora_text_encoder = prepare_lora_model_for_training(text_encoder)
         pipeline = StableDiffusionPipeline.from_pretrained(

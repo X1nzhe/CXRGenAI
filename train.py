@@ -1,5 +1,6 @@
 import os
 import torch
+from torch.cuda.amp import GradScaler
 from diffusers import StableDiffusionPipeline, UNet2DConditionModel
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 from tqdm import tqdm
@@ -36,7 +37,7 @@ class Trainer:
         self.model = model
         self.model.pipeline = prepare_lora_model_for_training(model.pipeline)
         self.device = model.device
-
+        self.scaler = GradScaler()
         self.unet = self.model.pipeline.unet
         self.text_encoder = self.model.pipeline.text_encoder
         self.tokenizer = self.model.pipeline.tokenizer
@@ -146,10 +147,30 @@ class Trainer:
         for batch in tqdm(train_loader, desc=f"Training Fold {fold} - Epoch {epoch}"):
             images, texts = batch['image'], batch['report']
             images = images.to(self.device)
-            loss = self._train_step(images, texts)
-            loss.backward()
-            optimizer.step()
+            # loss = self._train_step(images, texts)
+            # self.scaler.scale(loss).backward()
+            # self.scaler.step(optimizer)
+            # self.scaler.update()
+            # optimizer.zero_grad()
+
             optimizer.zero_grad()
+
+            loss = self._train_step(images, texts)
+
+            self.scaler.scale(loss).backward()
+
+            self.scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(
+                self.unet.parameters(),
+                max_norm=1.0
+            )
+            torch.nn.utils.clip_grad_norm_(
+                self.text_encoder.parameters(),
+                max_norm=1.0
+            )
+            self.scaler.step(optimizer)
+            self.scaler.update()
+
             total_loss += loss.item()
             num_batches += 1
         return total_loss / max(num_batches, 1)
@@ -206,42 +227,43 @@ class Trainer:
         return loss
 
     def _train_step(self, images, texts):
-        images = images.to(dtype=self.vae.dtype)
+        images = images.to(dtype=torch.float16)
         with torch.no_grad():
-            latents = self.vae.encode(images).latent_dist.sample()
-            latents = latents * 0.18215
-            latents = latents.to(self.vae.dtype)
-        prompts = [
-            f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
-        ]
-        text_inputs = self.tokenizer(
-            prompts,
-            padding="max_length",
-            truncation=True,
-            max_length=77,  # 77 by default
-            return_tensors="pt"
-        ).to(self.device)
+            with torch.cuda.amp.autocast(dtype=torch.float16):
+                latents = self.vae.encode(images).latent_dist.sample()
+                latents = latents * 0.18215
+                latents = latents.to(torch.float16)
+            prompts = [
+                f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
+            ]
+            text_inputs = self.tokenizer(
+                prompts,
+                padding="max_length",
+                truncation=True,
+                max_length=self.tokenizer.model_max_length,  # 77 by default
+                return_tensors="pt"
+            ).to(self.device)
+        with torch.cuda.amp.autocast():
+            text_embeddings = self.text_encoder(input_ids=text_inputs.input_ids.to(self.device),
+                                                attention_mask=text_inputs.attention_mask.to(self.device)
+                                                ).last_hidden_state.to(self.unet.dtype)
 
-        text_embeddings = self.text_encoder(input_ids=text_inputs.input_ids.to(self.device),
-                                            attention_mask=text_inputs.attention_mask.to(self.device)
-                                            ).last_hidden_state.to(self.unet.dtype)
+            timesteps = torch.randint(
+                0, self.noise_scheduler.config.num_train_timesteps,
+                (latents.shape[0],),
+                device=self.device
+            ).long()
 
-        timesteps = torch.randint(
-            0, self.noise_scheduler.config.num_train_timesteps,
-            (latents.shape[0],),
-            device=self.device
-        ).long()
+            noise = torch.randn_like(latents)
+            noisy_latents = self.noise_scheduler.add_noise(latents, noise, timesteps)
 
-        noise = torch.randn_like(latents)
-        noisy_latents = self.noise_scheduler.add_noise(latents, noise, timesteps)
+            noise_pred = self.unet(
+                noisy_latents,
+                timesteps,
+                encoder_hidden_states=text_embeddings
+            ).sample
 
-        noise_pred = self.unet(
-            noisy_latents,
-            timesteps,
-            encoder_hidden_states=text_embeddings
-        ).sample
-
-        loss = torch.nn.functional.mse_loss(noise_pred.to(noise.dtype), noise)
+            loss = torch.nn.functional.mse_loss(noise_pred.to(noise.dtype), noise)
         return loss
 
     def _plot_training_progress(self, train_losses, val_losses, ssim_scores):

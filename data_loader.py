@@ -229,6 +229,9 @@ class XRayDataset(Dataset):
             if len(report) > self.max_length:
                 report = report[:self.max_length]
 
+            if image.min() < -1 or image.max() > 1:
+                raise ValueError("Image normalization failed!")
+
             return {
                 'image': image,
                 'report': report,
