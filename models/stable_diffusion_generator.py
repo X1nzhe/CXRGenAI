@@ -44,7 +44,7 @@ class XRayGenerator(nn.Module):
         self.device = device
         self.pipeline = StableDiffusionPipeline.from_pretrained(
             model_name,
-        ).to(device, dtype=WEIGHT_DTYPE)
+        ).to(device)
         self.pipeline.set_progress_bar_config(disable=True)
 
         # Default CLIP
