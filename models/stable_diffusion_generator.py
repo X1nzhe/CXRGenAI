@@ -11,6 +11,7 @@ import torchvision.transforms as transforms
 from diffusers import StableDiffusionPipeline, UNet2DConditionModel, AutoencoderKL
 from diffusers.utils import logging as diffusers_logging
 from transformers import CLIPTokenizer, CLIPTextModel, CLIPConfig, CLIPModel, CLIPProcessor
+from transformers.utils.logging import disable_progress_bar as transformers_disable_progress_bar
 
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
@@ -81,6 +82,9 @@ class XRayGenerator(nn.Module):
             vae=self.vae,
             tokenizer=self.tokenizer
         ).to(device)
+
+        self.pipeline.set_progress_bar_config(disable=True)
+        transformers_disable_progress_bar()
 
     def generate_and_save_image(self, prompt, steps=NUM_INFERENCE_STEPS, resolution=IMAGE_HEIGHT):
         generated_image = self.pipeline(
