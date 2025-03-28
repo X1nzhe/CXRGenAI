@@ -189,6 +189,10 @@ class Trainer:
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
                 generated_images = self.model.generate_images_for_ssimV2(prompts)  # test new method
+
+                if generated_images.shape != real_images.shape:
+                    print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
+                    
                 loss = self._compute_test_loss(generated_images, real_images)
 
                 total_loss += loss.item()
