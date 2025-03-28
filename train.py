@@ -36,7 +36,7 @@ def prepare_lora_model_for_training(pipeline):
 
 class Trainer:
     def __init__(self, model, k_fold=K_FOLDS, batch_size=BATCH_SIZE, epochs=EPOCHS,
-                 lr=LEARNING_RATE, checkpoint_dir=CHECKPOINTS_DIR):
+                 lr=LEARNING_RATE, checkpoint_dir=CHECKPOINTS_DIR, early_stopping_patience=3):
         self.model = model
         self.model.pipeline = prepare_lora_model_for_training(model.pipeline)
         accelerator = Accelerator(mixed_precision="bf16")
@@ -65,6 +65,7 @@ class Trainer:
         self.lr = lr
         self.checkpoint_dir = checkpoint_dir
         os.makedirs(checkpoint_dir, exist_ok=True)
+        self.early_stopping_patience = early_stopping_patience
 
     def train(self):
         kfold_loaders = get_dataloader(k_folds=self.k_fold, batch_size=self.batch_size)
@@ -93,6 +94,7 @@ class Trainer:
             # optimizer = torch.optim.AdamW(self.unet.parameters(), lr=self.lr)
             self.unet.train()
             self.text_encoder.train()
+            early_stop_counter = 0
 
             for epoch in range(self.epochs):
                 train_loss = self._train_epoch(train_loader, optimizer, fold, epoch)
@@ -122,10 +124,16 @@ class Trainer:
                     print(
                         f"Best model updated: Fold {fold}, Epoch {epoch}, "
                         f"Val Loss {val_loss:.4f}, saved to {best_model_info['path']}")
+                    early_stop_counter = 0
             # checkpoint_path = os.path.join(self.checkpoint_dir, f"sd_lora_fold{fold}.pth")
             # self.model.save_model(checkpoint_path)
             # print(f"Checkpoint saved: {checkpoint_path}")
-
+                elif early_stop_counter >= self.early_stopping_patience:
+                    print(f"Early stopping triggered after {self.early_stopping_patience} epochs without improvement.")
+                    break
+                else:
+                    early_stop_counter += 1
+                    print(f"Early stopping counter: {early_stop_counter}/{self.early_stopping_patience}")
         # After training loop
         # Record the end time
         end_time = time.time()
