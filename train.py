@@ -1,6 +1,7 @@
 import os
 import torch
 from diffusers import StableDiffusionPipeline, UNet2DConditionModel
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 from accelerate import Accelerator
 from tqdm import tqdm
@@ -87,10 +88,11 @@ class Trainer:
             unet_lora_layers = [p for p in self.unet.parameters() if p.requires_grad]
             text_encoder_lora_layers = [p for p in self.text_encoder.parameters() if p.requires_grad]
             trainable_params = [
-                {"params": unet_lora_layers, "lr": self.lr},
-                {"params": text_encoder_lora_layers, "lr": self.lr}
+                {"params": unet_lora_layers, "lr": self.lr, "weight_decay": 0.01},
+                {"params": text_encoder_lora_layers, "lr": self.lr, "weight_decay": 0.001}
             ]
-            optimizer = torch.optim.AdamW(trainable_params)
+            optimizer = torch.optim.AdamW(trainable_params,  betas=(0.9, 0.98))
+            scheduler = CosineAnnealingLR(optimizer, T_max=10, eta_min=self.lr * 0.1)
             # optimizer = torch.optim.AdamW(self.unet.parameters(), lr=self.lr)
             self.unet.train()
             self.text_encoder.train()
@@ -99,7 +101,7 @@ class Trainer:
             for epoch in range(self.epochs):
                 train_loss = self._train_epoch(train_loader, optimizer, fold, epoch)
                 val_loss, ssim = self._validate_epoch(val_loader, ssim_metric, fold, epoch)
-
+                scheduler.step(train_loss)
                 train_losses.append(train_loss)
                 val_losses.append(val_loss)
                 ssim_scores.append(ssim)
@@ -192,7 +194,7 @@ class Trainer:
 
                 if generated_images.shape != real_images.shape:
                     print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
-                    
+
                 loss = self._compute_test_loss(generated_images, real_images)
 
                 total_loss += loss.item()
