@@ -136,7 +136,9 @@ class XRayGenerator(nn.Module):
                 width=IMAGE_WIDTH,
                 output_type="pt",
             )
-            images = outputs.images  # [batch, 1, 512, 512]
+            images = outputs.images  # [batch, C, H, W]
+        images = (images + 1) / 2
+
         return images.clamp(0, 1)
 
     # def save_model(self, path):
