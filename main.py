@@ -7,7 +7,7 @@ from models.stable_diffusion_generator import XRayGenerator
 from train import Trainer
 # from evaluate import Evaluator
 # from generate import Generator
-from models.cheXagent_evaluator import CheXagentEvaluator
+# from models.cheXagent_evaluator import CheXagentEvaluator
 
 
 def main():
@@ -49,14 +49,14 @@ def main():
         prompt = [
             f"{BASE_PROMPT_PREFIX}{args.description}{BASE_PROMPT_SUFFIX}"
         ]
-        generated_image_path, score = model.generate_and_save_image(prompt)
-        print(f"Generated X-Ray image saved.\n")
+        generated_image_path = model.generate_and_save_image(prompt)
+        print(f"Generated X-Ray image saved to path {generated_image_path}\n")
 
-        # TODO: MOVE this cheXagent score to model.py if it is working well
+        
         # print("Using CheXagent to evaluate the generated X-Ray image...")
         # evaluator = CheXagentEvaluator()
         # score = evaluator.evaluate_consistency(original_desc=args.description, image_path=generated_image_path,)
-        print(f"Generated X-Ray image consistency score：{score}")
+        # print(f"Generated X-Ray image consistency score：{score}")
 
 
 if __name__ == "__main__":

@@ -17,18 +17,15 @@ from transformers.utils.logging import disable_progress_bar as transformers_disa
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
 
-from models.cheXagent_evaluator import CheXagentEvaluator
-from train import prepare_lora_model_for_training
 
-
-def add_prompt_and_score_to_image(image, prompt, eval_score, max_chars_per_line=60):
+def add_prompt_to_image(image, prompt, max_chars_per_line=60):
     if isinstance(prompt, list):
         prompt = " ".join(prompt)
     wrapped_text = textwrap.fill(prompt, max_chars_per_line)
     lines = wrapped_text.count('\n') + 1
 
     line_height = 20
-    text_area_height = (lines + 1) * line_height + 10
+    text_area_height = lines * line_height + 10
     img_width, img_height = image.size
     new_img = Image.new('L', (img_width, img_height + text_area_height), color=255)
     new_img.paste(image, (0, 0))
@@ -36,9 +33,6 @@ def add_prompt_and_score_to_image(image, prompt, eval_score, max_chars_per_line=
     draw = ImageDraw.Draw(new_img)
     font = ImageFont.load_default()
     draw.multiline_text((10, img_height + 10), wrapped_text, font=font, fill=0)
-
-    eval_text = f"CheXagent Eval Score: {eval_score}"
-    draw.text((10, img_height + 10 + lines * line_height), eval_text, font=font, fill=0)
 
     return new_img
 
@@ -101,20 +95,20 @@ class XRayGenerator(nn.Module):
             width=resolution
         ).images[0]
 
-        cheXagent = CheXagentEvaluator()
-        cheXagent_score = cheXagent.evaluate_consistency(original_desc=diagnose, image=generated_image)
-        img_with_text = add_prompt_and_score_to_image(generated_image, diagnose, cheXagent_score)
+        # cheXagent = CheXagentEvaluator()
+        # cheXagent_score = cheXagent.evaluate_consistency(original_desc=diagnose, image=generated_image)
+        # img_with_text = add_prompt_to_image(generated_image, diagnose)
 
         image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
         image_dir = IMAGES_DIR
         os.makedirs(image_dir, exist_ok=True)
 
         file_path = os.path.join(image_dir, f"generated_{image_filename}.png")
-        img_with_text.save(file_path)
+        generated_image.save(file_path)
         print(f"Diagnose: {diagnose}")
         print(f"Image saved to {file_path}")
 
-        return file_path, cheXagent_score
+        return file_path
 
     def generate_images_for_ssim(self, prompts):
         with torch.no_grad():
