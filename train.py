@@ -199,17 +199,17 @@ class Trainer:
                 real_images, texts = batch['image'], batch['report']
 
                 real_images = real_images.to(self.device)
-                # debug
-                print("Real image data type:", real_images.dtype)
+                # # debug
+                # print("Real image data type:", real_images.dtype)
                 # if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
                 #     real_images = (real_images.float() / 255.0)
                 prompts = [
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
                 generated_images = self.model.generate_images_for_ssimV2(prompts)  # test new method
-                #Debug
-                print("Real image range:", real_images.min().item(), real_images.max().item())
-                print("Generated image range:", generated_images.min().item(), generated_images.max().item())
+                # #Debug
+                # print("Real image range:", real_images.min().item(), real_images.max().item())
+                # print("Generated image range:", generated_images.min().item(), generated_images.max().item())
 
                 if generated_images.shape != real_images.shape:
                     print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
