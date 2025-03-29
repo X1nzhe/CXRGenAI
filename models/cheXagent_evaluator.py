@@ -95,3 +95,4 @@ if __name__ == "__main__":
         max_new_tokens=512
     )[0]
     response = tokenizer.decode(output[input_ids.size(1):-1])
+    print(response)
