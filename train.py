@@ -76,7 +76,7 @@ class Trainer:
 
     def train(self):
         kfold_loaders = get_dataloader(k_folds=self.k_fold, batch_size=self.batch_size)
-        ssim_metric = SSIM(data_range=1.0).to(self.device)
+        ssim_metric = SSIM(data_range=2.0).to(self.device)
         train_losses, val_losses, ssim_scores = [], [], []
 
         best_val_loss = float("inf")
@@ -208,7 +208,7 @@ class Trainer:
                 # Debug
                 print("Real image range:", real_images.min().item(), real_images.max().item())
                 print("Generated image range:", generated_images.min().item(), generated_images.max().item())
-                
+
                 if generated_images.shape != real_images.shape:
                     print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
 

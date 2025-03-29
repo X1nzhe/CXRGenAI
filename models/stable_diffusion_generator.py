@@ -137,9 +137,10 @@ class XRayGenerator(nn.Module):
                 output_type="pt",
             )
             images = outputs.images  # [batch, C, H, W]
-        images = (images + 1) / 2
-
-        return images.clamp(0, 1)
+        # images = (images + 1) / 2
+        #
+        # return images.clamp(0, 1)
+        return images
 
     # def save_model(self, path):
     #     self.pipeline.save_pretrained(path)
