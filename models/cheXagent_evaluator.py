@@ -1,6 +1,9 @@
+from typing import Optional, Union
+
 import torch
 from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
 from PIL import Image
+from pathlib import Path
 
 
 class CheXagentEvaluator:
@@ -13,10 +16,15 @@ class CheXagentEvaluator:
             model_name, torch_dtype=self.dtype, trust_remote_code=True
         ).to(self.device)
 
-    def evaluate_consistency(self, image_path, original_text):
-        image = Image.open(image_path).convert("L")
+    def evaluate_consistency(self, original_desc: str, image: Optional[Image.Image] = None,
+                             image_path: Optional[Union[str, Path]] = None):
+        if image is None and image_path is None:
+            raise ValueError("Either 'image' or 'image_path' must be provided.")
+        if not image:
+            image = Image.open(image_path)
+
         prompt = (
-            f'Given this X-ray, rate how well it matches the description: "{original_text}". '
+            f'Given the X-ray image(s), rate how well it matches the description: "{original_desc}". '
             "Provide a score between 0 and 1, where 1 is a perfect match and 0 is completely unrelated."
         )
         inputs = self.processor(

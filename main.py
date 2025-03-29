@@ -47,13 +47,13 @@ def main():
         prompt = [
             f"{BASE_PROMPT_PREFIX}{args.description}{BASE_PROMPT_SUFFIX}"
         ]
-        generated_image_path = model.generate_and_save_image(prompt)
+        generated_image_path, score = model.generate_and_save_image(prompt)
         print(f"Generated X-Ray image saved.\n")
 
         # TODO: MOVE this cheXagent score to model.py if it is working well
-        print("Using CheXagent to evaluate the generated X-Ray image...")
-        evaluator = CheXagentEvaluator()
-        score = evaluator.evaluate(generated_image_path)
+        # print("Using CheXagent to evaluate the generated X-Ray image...")
+        # evaluator = CheXagentEvaluator()
+        # score = evaluator.evaluate_consistency(original_desc=args.description, image_path=generated_image_path,)
         print(f"Generated X-Ray image consistency score：{score}")
 
 

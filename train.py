@@ -211,8 +211,8 @@ class Trainer:
                 # print("Real image range:", real_images.min().item(), real_images.max().item())
                 # print("Generated image range:", generated_images.min().item(), generated_images.max().item())
 
-                if generated_images.shape != real_images.shape:
-                    print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
+                # if generated_images.shape != real_images.shape:
+                #     print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
 
                 loss = self._compute_test_loss(generated_images, real_images)
 
@@ -301,7 +301,7 @@ class Trainer:
         plt.xlabel("Epoch")
         plt.ylabel("SSIM")
         plt.legend()
-        plt.title("SSIM Score")
+        plt.title("Val SSIM Score")
 
         plt.savefig(os.path.join(self.checkpoint_dir, "training_progress.png"))
         plt.show()
