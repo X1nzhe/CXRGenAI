@@ -199,13 +199,15 @@ class Trainer:
                 real_images, texts = batch['image'], batch['report']
 
                 real_images = real_images.to(self.device)
-                if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
-                    real_images = (real_images.float() / 255.0)
+                # debug
+                print("Real image data type:", real_images.dtype)
+                # if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
+                #     real_images = (real_images.float() / 255.0)
                 prompts = [
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
                 generated_images = self.model.generate_images_for_ssimV2(prompts)  # test new method
-                # Debug
+                #Debug
                 print("Real image range:", real_images.min().item(), real_images.max().item())
                 print("Generated image range:", generated_images.min().item(), generated_images.max().item())
 
@@ -229,8 +231,8 @@ class Trainer:
                 real_images, texts = batch['image'], batch['report']
 
                 real_images = real_images.to(self.device)
-                if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
-                    real_images = (real_images.float() / 255.0)
+                # if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
+                #     real_images = (real_images.float() / 255.0)
                 prompts = [
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
