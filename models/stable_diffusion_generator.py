@@ -48,6 +48,7 @@ class XRayGenerator(nn.Module):
         super().__init__()
         diffusers_logging.set_verbosity_error()
         diffusers_logging.disable_progress_bar()
+        transformers_disable_progress_bar()
 
         self.device = device
         # self.pipeline = StableDiffusionPipeline.from_pretrained(
@@ -89,7 +90,7 @@ class XRayGenerator(nn.Module):
         ).to(device)
 
         self.pipeline.set_progress_bar_config(disable=True)
-        transformers_disable_progress_bar()
+
 
     def generate_and_save_image(self, diagnose, steps=NUM_INFERENCE_STEPS, resolution=IMAGE_HEIGHT):
         full_prompt = f"{BASE_PROMPT_PREFIX}{diagnose}{BASE_PROMPT_SUFFIX}"
