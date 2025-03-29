@@ -159,13 +159,13 @@ class XRayGenerator(nn.Module):
     def load_model(self, path):
         # unet = UNet2DConditionModel.from_pretrained(path + "/unet")
         # text_encoder = CLIPTextModel.from_pretrained(path + "/text_encoder")
+        #debug
+        print("debug: ", os.path.join(path, "text_encoder"))
         text_encoder = CLIPTextModel.from_pretrained(
             os.path.join(path, "text_encoder"),
-
         ).to(self.device)
         unet = UNet2DConditionModel.from_pretrained(
             os.path.join(path, "unet"),
-
         ).to(self.device)
         # lora_unet = prepare_lora_model_for_training(unet)
         # lora_text_encoder = prepare_lora_model_for_training(text_encoder)

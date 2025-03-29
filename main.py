@@ -36,9 +36,10 @@ def main():
             print("Error：Please provide a path to the GenAI model for the generated X-Ray image ")
             sys.exit(1)
 
-        print("Start X-Ray image generating...")
+        print("\nStart X-Ray image generating...")
         model = XRayGenerator()
         try:
+            print(f"Loading model from {args.model_path}")
             model.load_model(args.model_path)
         except Exception as e:
             print(f"Error loading model: {e}")
