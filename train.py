@@ -205,7 +205,10 @@ class Trainer:
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
                 generated_images = self.model.generate_images_for_ssimV2(prompts)  # test new method
-
+                # Debug
+                print("Real image range:", real_images.min().item(), real_images.max().item())
+                print("Generated image range:", generated_images.min().item(), generated_images.max().item())
+                
                 if generated_images.shape != real_images.shape:
                     print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
 
