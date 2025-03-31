@@ -18,8 +18,8 @@ LEARNING_RATE = 1e-4
 # Product config
 EPOCHS = 100
 K_FOLDS = 5
-IMAGE_WIDTH = 256
-IMAGE_HEIGHT = 256
+IMAGE_WIDTH = 128
+IMAGE_HEIGHT = 128
 NUM_INFERENCE_STEPS = 500
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

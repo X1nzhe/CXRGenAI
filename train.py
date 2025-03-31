@@ -345,8 +345,10 @@ class Trainer:
 
     def _plot_image_pair(self, fold, epoch, batch_idx, real_image, gen_image):
 
-        real_np = np.rot90(real_image[0, 0].cpu().numpy(), k=3)
-        gen_np = np.rot90(gen_image[0, 0].cpu().numpy(), k=3)
+        real_np = np.rot90(real_image[0, 0].cpu().numpy(), k=1)
+        real_np = np.fliplr(real_np)
+        gen_np = np.rot90(gen_image[0, 0].cpu().numpy(), k=1)
+        gen_np = np.fliplr(gen_np)
 
         figsize = (10, 5)
         fig, axes = plt.subplots(1, 2, figsize=figsize)
