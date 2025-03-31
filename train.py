@@ -363,7 +363,6 @@ class Trainer:
 
         plt.tight_layout()
         plt.savefig(os.path.join(self.images_dir, f"fold{fold}_epoch{epoch}_batch{batch_idx}_comparison.png"))
-        plt.show()
 
 
     # def _save_model(self, path):
