@@ -127,7 +127,7 @@ class XRayGenerator(nn.Module):
         # Stack all images into a single tensor with shape (batch_size, channels, height, width)
         return torch.cat(processed_images, dim=0)
 
-    def generate_images_for_ssimV2(self, prompts):
+    def generate_images_Tensor(self, prompts):
         if not isinstance(prompts, list):
             prompts = [prompts]
         with torch.no_grad():

@@ -2,7 +2,7 @@ import os
 import torch
 from diffusers import StableDiffusionPipeline, UNet2DConditionModel
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
+from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM, PeakSignalNoiseRatio as PSNR
 from accelerate import Accelerator
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -12,7 +12,7 @@ import time
 from transformers import CLIPTextModel
 
 from config import CHECKPOINTS_DIR, BATCH_SIZE, EPOCHS, LEARNING_RATE, BASE_PROMPT_PREFIX, \
-    BASE_PROMPT_SUFFIX, K_FOLDS
+    BASE_PROMPT_SUFFIX, K_FOLDS, IMAGES_DIR
 from data_loader import get_dataloader
 
 
@@ -43,7 +43,7 @@ def prepare_lora_model_for_training(pipeline):
 
 class Trainer:
     def __init__(self, model, k_fold=K_FOLDS, batch_size=BATCH_SIZE, epochs=EPOCHS,
-                 lr=LEARNING_RATE, checkpoint_dir=CHECKPOINTS_DIR, early_stopping_patience=3):
+                 lr=LEARNING_RATE, checkpoint_dir=CHECKPOINTS_DIR, images_dir=IMAGES_DIR, early_stopping_patience=5):
         self.model = model
         self.model.pipeline = prepare_lora_model_for_training(model.pipeline)
         accelerator = Accelerator(mixed_precision="bf16")
@@ -74,10 +74,13 @@ class Trainer:
         os.makedirs(checkpoint_dir, exist_ok=True)
         self.early_stopping_patience = early_stopping_patience
 
+        self.images_dir = images_dir
+
     def train(self):
         kfold_loaders = get_dataloader(k_folds=self.k_fold, batch_size=self.batch_size)
         ssim_metric = SSIM(data_range=2.0).to(self.device)
-        train_losses, val_losses, ssim_scores = [], [], []
+        psnr_metric = PSNR().to(self.device)
+        train_losses, val_losses, ssim_scores, psnr_scores = [], [], [], []
 
         best_val_loss = float("inf")
         best_model_info = {"fold": None, "epoch": None, "path": None}
@@ -114,14 +117,15 @@ class Trainer:
 
             for epoch in range(self.epochs):
                 train_loss = self._train_epoch(train_loader, optimizer, fold, epoch)
-                val_loss, ssim = self._validate_epoch(val_loader, ssim_metric, fold, epoch)
+                val_loss, ssim, psnr = self._validate_epoch(val_loader, ssim_metric, psnr_metric, fold, epoch)
                 scheduler.step(train_loss)
                 train_losses.append(train_loss)
                 val_losses.append(val_loss)
                 ssim_scores.append(ssim)
+                psnr_scores.append(psnr)
 
-                print(f"Fold {fold} - Epoch {epoch} - Train Loss: {train_loss:.4f} "
-                      f"- Val Loss: {val_loss:.4f} - SSIM Score: {ssim:.4f}")
+                print(f"\nFold {fold} - Epoch {epoch} - Avg Train Loss: {train_loss:.4f} "
+                      f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
 
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
@@ -159,13 +163,13 @@ class Trainer:
         seconds = total_time % 60
         print(f"\nTraining completed at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))} UTC")
         print(f"Total training time: {int(hours)} hours {int(minutes)} minutes {int(seconds):.2f} seconds")
-        self._plot_training_progress(train_losses, val_losses, ssim_scores)
+        self._plot_training_progress(train_losses, val_losses, ssim_scores, psnr_scores)
 
         print(f"Training complete. Running final test on the best model from {best_model_info['path']}...\n")
         finetuned_model = self.model.load_model(best_model_info["path"])
         test_loader = kfold_loaders[0]['test_loader']
-        test_loss, test_ssim = self._test_epoch(test_loader, ssim_metric)
-        print(f"Final Test - Loss: {test_loss:.4f}, SSIM: {test_ssim:.4f}")
+        test_loss, test_ssim, test_psnr = self._test_epoch(test_loader, ssim_metric, psnr_metric)
+        print(f"Final Test - Avg Test Loss: {test_loss:.4f}, Avg Test SSIM: {test_ssim:.4f}, Avg Test PSNR: {test_psnr:.4f}")
         print(f"Generating some images...")
         for batch in test_loader:
             prompts = batch['report']
@@ -189,8 +193,8 @@ class Trainer:
             num_batches += 1
         return total_loss / max(num_batches, 1)
 
-    def _validate_epoch(self, val_loader, ssim_metric, fold, epoch):
-        total_loss, total_ssim, num_batches = 0.0, 0.0, 0
+    def _validate_epoch(self, val_loader, ssim_metric, psnr_metric, fold, epoch):
+        total_loss, total_ssim, total_psnr, num_batches = 0.0, 0.0, 0.0, 0
         self.unet.eval()
         self.text_encoder.eval()
 
@@ -206,23 +210,26 @@ class Trainer:
                 prompts = [
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
-                generated_images = self.model.generate_images_for_ssimV2(prompts)  # test new method
+                generated_images = self.model.generate_images_Tensor(prompts)  # test new method
                 # #Debug
                 # print("Real image range:", real_images.min().item(), real_images.max().item())
                 # print("Generated image range:", generated_images.min().item(), generated_images.max().item())
 
                 # if generated_images.shape != real_images.shape:
                 #     print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
+                if epoch % 5 == 0:
+                    self._plot_image_pair(fold, epoch, real_images, generated_images)
 
                 loss = self._compute_test_loss(generated_images, real_images)
 
                 total_loss += loss.item()
                 total_ssim += ssim_metric(generated_images, real_images).item()
+                total_psnr += psnr_metric(generated_images, real_images).item()
                 num_batches += 1
-        return total_loss / max(num_batches, 1), total_ssim / max(num_batches, 1)
+        return total_loss / max(num_batches, 1), total_ssim / max(num_batches, 1), total_psnr / max(num_batches, 1)
 
-    def _test_epoch(self, test_loader, ssim_metric):
-        total_loss, total_ssim, num_batches = 0.0, 0.0, 0
+    def _test_epoch(self, test_loader, ssim_metric, psnr_metric):
+        total_loss, total_ssim, total_psnr, num_batches = 0.0, 0.0, 0.0, 0
         self.unet.eval()
         self.text_encoder.eval()
 
@@ -236,13 +243,14 @@ class Trainer:
                 prompts = [
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
-                generated_images = self.model.generate_images_for_ssimV2(prompts)  # test new method
+                generated_images = self.model.generate_images_Tensor(prompts)  # test new method
                 loss = self._compute_test_loss(generated_images, real_images)
 
                 total_loss += loss.item()
                 total_ssim += ssim_metric(generated_images, real_images).item()
+                total_psnr += psnr_metric(generated_images, real_images).item()
                 num_batches += 1
-        return total_loss / max(num_batches, 1), total_ssim / max(num_batches, 1)
+        return total_loss / max(num_batches, 1), total_ssim / max(num_batches, 1), total_psnr / max(num_batches, 1)
 
     def _compute_test_loss(self, generated_images, real_images):
         with torch.no_grad():
@@ -286,9 +294,9 @@ class Trainer:
         loss = torch.nn.functional.mse_loss(noise_pred, noise)
         return loss
 
-    def _plot_training_progress(self, train_losses, val_losses, ssim_scores):
+    def _plot_training_progress(self, train_losses, val_losses, ssim_scores, psnr_scores):
         plt.figure(figsize=(10, 5))
-        plt.subplot(1, 2, 1)
+        plt.subplot(1, 3, 1)
         plt.plot(train_losses, label="Train Loss")
         plt.plot(val_losses, label="Val Loss")
         plt.xlabel("Epoch")
@@ -296,15 +304,44 @@ class Trainer:
         plt.legend()
         plt.title("Loss Curve")
 
-        plt.subplot(1, 2, 2)
+        plt.subplot(1, 3, 2)
         plt.plot(ssim_scores, label="SSIM Score", color="green")
         plt.xlabel("Epoch")
         plt.ylabel("SSIM")
         plt.legend()
         plt.title("Val SSIM Score")
 
-        plt.savefig(os.path.join(self.checkpoint_dir, "training_progress.png"))
+        plt.subplot(1, 3, 3)
+        plt.plot(psnr_scores, label="PSNR Score", color="green")
+        plt.xlabel("Epoch")
+        plt.ylabel("PSNR")
+        plt.legend()
+        plt.title("Val PSNR Score")
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(self.images_dir, "training_progress.png"))
         plt.show()
+
+    def _plot_image_pair(self, fold, epoch, real_image, gen_image):
+
+        real_np = real_image[0,0].cpu().detach().numpy().T
+        gen_np = gen_image[0,0].cpu().detach().numpy().T
+
+        figsize = (10, 5)
+        fig, axes = plt.subplots(1, 2, figsize=figsize)
+
+        axes[0].imshow(real_np, cmap='gray', origin='lower')
+        axes[0].set_title(f"Fold {fold} Epoch {epoch} Real Image")
+        axes[0].axis('off')
+
+        axes[1].imshow(gen_np, cmap='gray', origin='lower')
+        axes[1].set_title(f"Fold {fold} Epoch {epoch} Generated Image")
+        axes[1].axis('off')
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(self.images_dir, f"fold{fold}_epoch{epoch}_comparison.png"))
+        plt.show()
+
 
     # def _save_model(self, path):
     #     model = self.model.merge_and_unload()

@@ -147,43 +147,43 @@ def check_and_download_dataset():
     png_dir = os.path.join(DATA_DIR, "png")
     png_tgz_path = os.path.join(DATA_DIR, PNGS_FILENAME)
 
-    print("Checking for Indiana University Chest X-ray Collection dataset...")
+    print("\nChecking for Indiana University Chest X-ray Collection dataset...")
     if not os.path.exists(png_dir) or len(os.listdir(png_dir)) == 0:
         if os.path.exists(png_tgz_path):
-            print("PNG zipfile exists.")
+            print("\nPNG zipfile exists.")
         else:
-            print(f"Downloading PNG images from {DATASET_URL}")
+            print(f"\nDownloading PNG images from {DATASET_URL}")
             download_file_multithread(DATASET_URL, png_tgz_path)
 
-        print("Extracting PNG images...")
+        print("\nExtracting PNG images...")
         os.makedirs(png_dir, exist_ok=True)
         extract_tarfile(png_tgz_path, png_dir)
 
-        print("PNG images extracted.")
+        print("\nPNG images extracted.")
     else:
-        print("PNG images are already available.")
+        print("\nPNG images are already available.")
 
     reports_dir = os.path.join(DATA_DIR, "reports")
     reports_tgz_path = os.path.join(DATA_DIR, REPORTS_FILENAME)
 
     if not os.path.exists(reports_dir) or len(os.listdir(reports_dir)) == 0:
         if os.path.exists(reports_tgz_path):
-            print("Reports zipfile exists.")
+            print("\nReports zipfile exists.")
         else:
-            print(f"Downloading reports from {REPORTS_URL}")
+            print(f"\nDownloading reports from {REPORTS_URL}")
             download_file_singlethread(REPORTS_URL, reports_tgz_path)
 
-        print("Extracting reports...")
+        print("\nExtracting reports...")
         os.makedirs(reports_dir, exist_ok=True)
         extract_tarfile(reports_tgz_path, reports_dir)
 
-        print("Reports extracted.")
+        print("\nReports extracted.")
     else:
-        print("Reports are already available.")
+        print("\nReports are already available.")
 
     csv_path = os.path.join(DATA_DIR, "metadata.csv")
     if not os.path.exists(csv_path):
-        print("Processing reports and creating metadata CSV...")
+        print("\nProcessing reports and creating metadata CSV...")
         reports_df = parse_reports(reports_dir)
 
         valid_entries = []
@@ -198,9 +198,9 @@ def check_and_download_dataset():
 
         final_df = pd.DataFrame(valid_entries)
         final_df.to_csv(csv_path, index=False)
-        print(f"Created metadata CSV with {len(final_df)} valid entries.")
+        print(f"\nCreated metadata CSV with {len(final_df)} valid entries.")
     else:
-        print("Metadata CSV file already exists.")
+        print("\nMetadata CSV file already exists.")
 
 
 class XRayDataset(Dataset):
@@ -309,7 +309,7 @@ def get_dataloader(k_folds=K_FOLDS, batch_size=8, test_split=0.2, random_seed=12
         num_workers=os.cpu_count(),
         pin_memory=True
     )
-    print(f"Created Test dataset with {test_size} samples.")
+    print(f"\nCreated Test dataset with {test_size} samples.")
 
     # 80% of full dataset for training and validating
     print(f"Creating K-fold (K={k_folds}) datasets...")
