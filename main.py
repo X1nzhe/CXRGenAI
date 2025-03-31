@@ -3,7 +3,7 @@ import sys
 
 
 from config import BASE_PROMPT_PREFIX, BASE_PROMPT_SUFFIX
-from models.stable_diffusion_generator import XRayGenerator
+from stable_diffusion_generator import XRayGenerator
 from train import Trainer
 # from evaluate import Evaluator
 # from generate import Generator
