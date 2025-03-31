@@ -218,8 +218,8 @@ class Trainer:
 
                 # if generated_images.shape != real_images.shape:
                 #     print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
-                if epoch % 5 == 0 and batch_idx == 0:
-                    self._plot_image_pair(fold, epoch, real_images[0:1], generated_images[0:1])
+                if epoch % 5 == 0 and batch_idx % 8 == 0:
+                    self._plot_image_pair(fold, epoch, batch_idx, real_images[0:1], generated_images[0:1])
 
                 loss = self._compute_test_loss(generated_images, real_images)
 
@@ -323,7 +323,7 @@ class Trainer:
         plt.savefig(os.path.join(self.images_dir, "training_progress.png"))
         plt.show()
 
-    def _plot_image_pair(self, fold, epoch, real_image, gen_image):
+    def _plot_image_pair(self, fold, epoch, batch_idx, real_image, gen_image):
 
         real_np = real_image[0,0].cpu().detach().numpy().T
         gen_np = gen_image[0,0].cpu().detach().numpy().T
@@ -332,15 +332,15 @@ class Trainer:
         fig, axes = plt.subplots(1, 2, figsize=figsize)
 
         axes[0].imshow(real_np, cmap='gray', origin='lower')
-        axes[0].set_title(f"Fold {fold} Epoch {epoch} Real Image")
+        axes[0].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample 0 Real Image")
         axes[0].axis('off')
 
         axes[1].imshow(gen_np, cmap='gray', origin='lower')
-        axes[1].set_title(f"Fold {fold} Epoch {epoch} Generated Image")
+        axes[1].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample 0 Generated Image")
         axes[1].axis('off')
 
         plt.tight_layout()
-        plt.savefig(os.path.join(self.images_dir, f"fold{fold}_epoch{epoch}_comparison.png"))
+        plt.savefig(os.path.join(self.images_dir, f"fold{fold}_epoch{epoch}_batch_{batch_idx}_comparison.png"))
         plt.show()
 
 

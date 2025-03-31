@@ -170,7 +170,7 @@ def check_and_download_dataset():
         if os.path.exists(reports_tgz_path):
             print("Reports zipfile exists.")
         else:
-            print(f"Downloading reports from {REPORTS_URL}")
+            print(f"\nDownloading reports from {REPORTS_URL}")
             download_file_singlethread(REPORTS_URL, reports_tgz_path)
 
         print("\nExtracting reports...")
