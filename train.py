@@ -200,7 +200,7 @@ class Trainer:
         self.text_encoder.eval()
 
         with torch.no_grad():
-            for batch in tqdm(val_loader, desc=f"Validating Fold {fold} - Epoch {epoch}"):
+            for batch_idx, batch in tqdm(val_loader, desc=f"Validating Fold {fold} - Epoch {epoch}"):
                 real_images, texts = batch['image'], batch['report']
 
                 real_images = real_images.to(self.device)
@@ -218,8 +218,8 @@ class Trainer:
 
                 # if generated_images.shape != real_images.shape:
                 #     print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
-                if epoch % 5 == 0:
-                    self._plot_image_pair(fold, epoch, real_images, generated_images)
+                if epoch % 5 == 0 and batch_idx == 0:
+                    self._plot_image_pair(fold, epoch, real_images[0:1], generated_images[0:1])
 
                 loss = self._compute_test_loss(generated_images, real_images)
 
