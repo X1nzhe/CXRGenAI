@@ -238,7 +238,7 @@ class Trainer:
 
                 # if generated_images.shape != real_images.shape:
                 #     print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
-                if epoch % 5 == 0 and batch_idx % 20 == 0:
+                if epoch % 5 == 0 and batch_idx % 10 == 0:
                     self._plot_image_pair(fold, epoch, batch_idx, real_images[0:1], generated_images[0:1])
 
                 loss = self._compute_test_loss(generated_images, real_images)
