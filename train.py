@@ -148,7 +148,7 @@ class Trainer:
                 #         f"Val Loss {val_loss:.4f}, saved to {best_model_info['path']}")
                 #     early_stop_counter = 0
                 if ssim > best_ssim_score:
-                    best_ssim_score = val_loss
+                    best_ssim_score = ssim
                     best_model_info["fold"] = fold
                     best_model_info["epoch"] = epoch
                     best_model_info["path"] = os.path.join(
