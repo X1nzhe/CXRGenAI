@@ -5,7 +5,7 @@ import torch
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 LEARNING_RATE = 1e-4
 
 # Test config
