@@ -344,17 +344,17 @@ class Trainer:
 
     def _plot_image_pair(self, fold, epoch, batch_idx, real_image, gen_image):
 
-        real_np = real_image[0,0].cpu().detach().numpy()
-        gen_np = gen_image[0,0].cpu().detach().numpy()
+        real_np = real_image[0,0].cpu().detach().numpy().T
+        gen_np = gen_image[0,0].cpu().detach().numpy().T
 
         figsize = (10, 5)
         fig, axes = plt.subplots(1, 2, figsize=figsize)
 
-        axes[0].imshow(real_np, cmap='gray', origin='lower')
+        axes[0].imshow(real_np, cmap='gray', origin='upper')
         axes[0].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample 0 Real Image")
         axes[0].axis('off')
 
-        axes[1].imshow(gen_np, cmap='gray', origin='lower')
+        axes[1].imshow(gen_np, cmap='gray', origin='upper')
         axes[1].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample 0 Generated Image")
         axes[1].axis('off')
 
