@@ -5,7 +5,7 @@ import torch
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-BATCH_SIZE = 16
+BATCH_SIZE = 1
 LEARNING_RATE = 1e-4
 
 # Test config
@@ -16,7 +16,7 @@ LEARNING_RATE = 1e-4
 # NUM_INFERENCE_STEPS = 20
 
 # Product config
-EPOCHS = 10
+EPOCHS = 100
 K_FOLDS = 5
 IMAGE_WIDTH = 360
 IMAGE_HEIGHT = 360

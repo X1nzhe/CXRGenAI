@@ -52,7 +52,7 @@ def main():
         generated_image_path = model.generate_and_save_image(prompt)
         print(f"Generated X-Ray image saved to path {generated_image_path}\n")
 
-        
+
         # print("Using CheXagent to evaluate the generated X-Ray image...")
         # evaluator = CheXagentEvaluator()
         # score = evaluator.evaluate_consistency(original_desc=args.description, image_path=generated_image_path,)
