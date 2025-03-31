@@ -43,7 +43,7 @@ def prepare_lora_model_for_training(pipeline):
 
 class Trainer:
     def __init__(self, model, k_fold=K_FOLDS, batch_size=BATCH_SIZE, epochs=EPOCHS,
-                 lr=LEARNING_RATE, checkpoint_dir=CHECKPOINTS_DIR, images_dir=IMAGES_DIR, early_stopping_patience=5):
+                 lr=LEARNING_RATE, checkpoint_dir=CHECKPOINTS_DIR, images_dir=IMAGES_DIR, early_stopping_patience=3):
         self.model = model
         self.model.pipeline = prepare_lora_model_for_training(model.pipeline)
         accelerator = Accelerator(mixed_precision="bf16")
@@ -83,7 +83,8 @@ class Trainer:
         psnr_metric = PSNR().to(self.device)
         train_losses, val_losses, ssim_scores, psnr_scores = [], [], [], []
 
-        best_val_loss = float("inf")
+        # best_val_loss = float("inf")
+        best_ssim_score = float("-inf")
         best_model_info = {"fold": None, "epoch": None, "path": None}
 
         # Record the start time
@@ -128,8 +129,26 @@ class Trainer:
                 print(f"\nFold {fold} - Epoch {epoch} - Avg Train Loss: {train_loss:.4f} "
                       f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
 
-                if val_loss < best_val_loss:
-                    best_val_loss = val_loss
+                # if val_loss < best_val_loss:
+                #     best_val_loss = val_loss
+                #     best_model_info["fold"] = fold
+                #     best_model_info["epoch"] = epoch
+                #     best_model_info["path"] = os.path.join(
+                #         self.checkpoint_dir,
+                #         f"best_model_fold{fold}_epoch{epoch}"
+                #     )
+                #
+                #     # self.model.save_model(best_model_info["path"])
+                #     merged_unet = self.unet.merge_and_unload()
+                #     merged_text_encoder = self.text_encoder.merge_and_unload()
+                #     merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
+                #     merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
+                #     print(
+                #         f"Best model updated: Fold {fold}, Epoch {epoch}, "
+                #         f"Val Loss {val_loss:.4f}, saved to {best_model_info['path']}")
+                #     early_stop_counter = 0
+                if ssim > best_ssim_score:
+                    best_ssim_score = val_loss
                     best_model_info["fold"] = fold
                     best_model_info["epoch"] = epoch
                     best_model_info["path"] = os.path.join(
@@ -144,7 +163,7 @@ class Trainer:
                     merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
                     print(
                         f"Best model updated: Fold {fold}, Epoch {epoch}, "
-                        f"Val Loss {val_loss:.4f}, saved to {best_model_info['path']}")
+                        f"Val SSIM Score {ssim:.4f}, saved to {best_model_info['path']}")
                     early_stop_counter = 0
             # checkpoint_path = os.path.join(self.checkpoint_dir, f"sd_lora_fold{fold}.pth")
             # self.model.save_model(checkpoint_path)
@@ -218,7 +237,7 @@ class Trainer:
 
                 # if generated_images.shape != real_images.shape:
                 #     print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
-                if epoch % 5 == 0 and batch_idx % 8 == 0:
+                if epoch % 5 == 0 and batch_idx % 20 == 0:
                     self._plot_image_pair(fold, epoch, batch_idx, real_images[0:1], generated_images[0:1])
 
                 loss = self._compute_test_loss(generated_images, real_images)
@@ -325,8 +344,8 @@ class Trainer:
 
     def _plot_image_pair(self, fold, epoch, batch_idx, real_image, gen_image):
 
-        real_np = real_image[0,0].cpu().detach().numpy().T
-        gen_np = gen_image[0,0].cpu().detach().numpy().T
+        real_np = real_image[0,0].cpu().detach().numpy()
+        gen_np = gen_image[0,0].cpu().detach().numpy()
 
         figsize = (10, 5)
         fig, axes = plt.subplots(1, 2, figsize=figsize)
@@ -340,7 +359,7 @@ class Trainer:
         axes[1].axis('off')
 
         plt.tight_layout()
-        plt.savefig(os.path.join(self.images_dir, f"fold{fold}_epoch{epoch}_batch_{batch_idx}_comparison.png"))
+        plt.savefig(os.path.join(self.images_dir, f"fold{fold}_epoch{epoch}_batch{batch_idx}_comparison.png"))
         plt.show()
 
 
