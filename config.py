@@ -5,7 +5,7 @@ import torch
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 LEARNING_RATE = 1e-4
 
 # Test config
@@ -18,8 +18,8 @@ LEARNING_RATE = 1e-4
 # Product config
 EPOCHS = 100
 K_FOLDS = 5
-IMAGE_WIDTH = 128
-IMAGE_HEIGHT = 128
+IMAGE_WIDTH = 360
+IMAGE_HEIGHT = 360
 NUM_INFERENCE_STEPS = 500
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
