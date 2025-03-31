@@ -75,6 +75,7 @@ class Trainer:
         self.early_stopping_patience = early_stopping_patience
 
         self.images_dir = images_dir
+        os.makedirs(images_dir, exist_ok=True)
 
     def train(self):
         kfold_loaders = get_dataloader(k_folds=self.k_fold, batch_size=self.batch_size)
