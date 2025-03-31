@@ -200,7 +200,7 @@ class Trainer:
         self.text_encoder.eval()
 
         with torch.no_grad():
-            for batch_idx, batch in tqdm(val_loader, desc=f"Validating Fold {fold} - Epoch {epoch}"):
+            for batch_idx, batch in enumerate(tqdm(val_loader, desc=f"Validating Fold {fold} - Epoch {epoch}")):
                 real_images, texts = batch['image'], batch['report']
 
                 real_images = real_images.to(self.device)
