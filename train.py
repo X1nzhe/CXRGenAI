@@ -61,29 +61,16 @@ class Trainer:
         self.text_encoder.requires_grad_(True)
         self.vae.requires_grad_(False)
 
-        self.k_fold = config.K_FOLDS
-        self.batch_size = config.BATCH_SIZE
-        self.epochs = config.EPOCHS
-        self.lr = config.LEARNING_RATE
+        self.k_fold = k_fold if k_fold is not None else config.K_FOLDS
+        self.batch_size = batch_size if batch_size is not None else config.BATCH_SIZE
+        self.epochs = epochs if epochs is not None else config.EPOCHS
+        self.lr = lr if lr is not None else config.LEARNING_RATE
 
-        if k_fold:
-            self.k_fold = k_fold
-        if batch_size:
-            self.batch_size = batch_size
-        if epochs:
-            self.epochs = epochs
-        if lr:
-            self.lr = lr
+        self.checkpoint_dir = checkpoint_dir if checkpoint_dir is not None else config.CHECKPOINTS_DIR
+        os.makedirs(self.checkpoint_dir, exist_ok=True)
 
-        self.checkpoint_dir = config.CHECKPOINTS_DIR
-        if checkpoint_dir:
-            self.checkpoint_dir = checkpoint_dir
-        os.makedirs(checkpoint_dir, exist_ok=True)
-
-        self.images_dir = config.IMAGES_DIR
-        if images_dir:
-            self.images_dir = images_dir
-        os.makedirs(images_dir, exist_ok=True)
+        self.images_dir = images_dir if images_dir is not None else config.IMAGES_DIR
+        os.makedirs(self.images_dir, exist_ok=True)
 
         self.early_stopping_patience = early_stopping_patience
 
