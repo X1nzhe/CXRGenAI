@@ -102,7 +102,7 @@ class Trainer:
             scheduler = CosineAnnealingLR(
                 optimizer,
                 T_max=3,
-                eta_min=self.lr * 0.1
+                eta_min=self.lr * 0.01
             )
             torch.nn.utils.clip_grad_norm_(
                 parameters=unet_lora_layers + text_encoder_lora_layers,
