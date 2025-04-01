@@ -1,16 +1,14 @@
 import os
 import torch
-from diffusers import StableDiffusionPipeline, UNet2DConditionModel
+
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM, PeakSignalNoiseRatio as PSNR
 from accelerate import Accelerator
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from peft import get_peft_model, LoraConfig, prepare_model_for_kbit_training
+from peft import get_peft_model, LoraConfig
 import time
 import numpy as np
-
-from transformers import CLIPTextModel
 
 from config import CHECKPOINTS_DIR, BATCH_SIZE, EPOCHS, LEARNING_RATE, BASE_PROMPT_PREFIX, \
     BASE_PROMPT_SUFFIX, K_FOLDS, IMAGES_DIR
@@ -18,8 +16,6 @@ from data_loader import get_dataloader
 
 
 def prepare_lora_model_for_training(pipeline):
-    # pipeline.unet = prepare_model_for_kbit_training(pipeline.unet)
-    # pipeline.text_encoder = prepare_model_for_kbit_training(pipeline.text_encoder)
 
     unet_lora_config = LoraConfig(
         r=16,
@@ -32,7 +28,7 @@ def prepare_lora_model_for_training(pipeline):
         r=8,
         lora_alpha=16,
         lora_dropout=0.05,
-        target_modules=["q_proj", "v_proj", "k_proj", "out_proj"], # For Text encoder
+        target_modules=["q_proj", "v_proj", "k_proj", "out_proj"],  # For Text encoder
         modules_to_save=["conv_in"],
     )
     pipeline.unet = get_peft_model(pipeline.unet, unet_lora_config)
@@ -84,7 +80,6 @@ class Trainer:
         psnr_metric = PSNR().to(self.device)
         train_losses, val_losses, ssim_scores, psnr_scores = [], [], [], []
 
-        # best_val_loss = float("inf")
         best_ssim_score = float("-inf")
         best_model_info = {"fold": None, "epoch": None, "path": None}
 
@@ -113,7 +108,7 @@ class Trainer:
                 parameters=unet_lora_layers + text_encoder_lora_layers,
                 max_norm=1.0
             )
-            # optimizer = torch.optim.AdamW(self.unet.parameters(), lr=self.lr)
+
             self.unet.train()
             self.text_encoder.train()
             early_stop_counter = 0
@@ -130,24 +125,6 @@ class Trainer:
                 print(f"\nFold {fold} - Epoch {epoch} - Avg Train Loss: {train_loss:.4f} "
                       f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
 
-                # if val_loss < best_val_loss:
-                #     best_val_loss = val_loss
-                #     best_model_info["fold"] = fold
-                #     best_model_info["epoch"] = epoch
-                #     best_model_info["path"] = os.path.join(
-                #         self.checkpoint_dir,
-                #         f"best_model_fold{fold}_epoch{epoch}"
-                #     )
-                #
-                #     # self.model.save_model(best_model_info["path"])
-                #     merged_unet = self.unet.merge_and_unload()
-                #     merged_text_encoder = self.text_encoder.merge_and_unload()
-                #     merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
-                #     merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
-                #     print(
-                #         f"Best model updated: Fold {fold}, Epoch {epoch}, "
-                #         f"Val Loss {val_loss:.4f}, saved to {best_model_info['path']}")
-                #     early_stop_counter = 0
                 if ssim > best_ssim_score:
                     best_ssim_score = ssim
                     best_model_info["fold"] = fold
@@ -157,7 +134,6 @@ class Trainer:
                         f"best_model_fold{fold}_epoch{epoch}"
                     )
 
-                    # self.model.save_model(best_model_info["path"])
                     merged_unet = self.unet.merge_and_unload()
                     merged_text_encoder = self.text_encoder.merge_and_unload()
                     merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
@@ -166,9 +142,7 @@ class Trainer:
                         f"Best model updated: Fold {fold}, Epoch {epoch}, "
                         f"Val SSIM Score {ssim:.4f}, saved to {best_model_info['path']}")
                     early_stop_counter = 0
-            # checkpoint_path = os.path.join(self.checkpoint_dir, f"sd_lora_fold{fold}.pth")
-            # self.model.save_model(checkpoint_path)
-            # print(f"Checkpoint saved: {checkpoint_path}")
+
                 elif early_stop_counter >= self.early_stopping_patience:
                     print(f"Early stopping triggered after {self.early_stopping_patience} epochs without improvement.")
                     break
@@ -224,20 +198,10 @@ class Trainer:
                 real_images, texts = batch['image'], batch['report']
 
                 real_images = real_images.to(self.device)
-                # # debug
-                # print("Real image data type:", real_images.dtype)
-                # if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
-                #     real_images = (real_images.float() / 255.0)
                 prompts = [
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
-                generated_images = self.model.generate_images_Tensor(prompts)  # test new method
-                # #Debug
-                # print("Real image range:", real_images.min().item(), real_images.max().item())
-                # print("Generated image range:", generated_images.min().item(), generated_images.max().item())
-
-                # if generated_images.shape != real_images.shape:
-                #     print(f"Shape mismatch: generated {generated_images.shape}, real {real_images.shape}")
+                generated_images = self.model.generate_images_Tensor(prompts)
                 if epoch % 5 == 0 and batch_idx % 10 == 0:
                     self._plot_image_pair(fold, epoch, batch_idx, real_images[0:1], generated_images[0:1])
 
@@ -259,12 +223,10 @@ class Trainer:
                 real_images, texts = batch['image'], batch['report']
 
                 real_images = real_images.to(self.device)
-                # if real_images.dtype == torch.uint8:  # normalize to the range [0, 1]
-                #     real_images = (real_images.float() / 255.0)
                 prompts = [
                     f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
                 ]
-                generated_images = self.model.generate_images_Tensor(prompts)  # test new method
+                generated_images = self.model.generate_images_Tensor(prompts)
                 loss = self._compute_test_loss(generated_images, real_images)
 
                 total_loss += loss.item()
@@ -363,10 +325,4 @@ class Trainer:
 
         plt.tight_layout()
         plt.savefig(os.path.join(self.images_dir, f"fold{fold}_epoch{epoch}_batch{batch_idx}_comparison.png"))
-
-
-    # def _save_model(self, path):
-    #     model = self.model.merge_and_unload()
-    #     model.save_pretrained(path)
-
-
+        plt.close()

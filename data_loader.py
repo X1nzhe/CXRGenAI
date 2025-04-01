@@ -274,15 +274,9 @@ def get_dataloader(k_folds=K_FOLDS, batch_size=8, test_split=0.2, random_seed=12
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)
 
-    # transform = transforms.Compose([
-    #     transforms.Resize((256, 256)),
-    #     transforms.ToTensor(),
-    #     transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-    # ])
     transform = transforms.Compose([
         ImageResize(target_width=IMAGE_WIDTH, target_height=IMAGE_HEIGHT),
         transforms.ToTensor(),
-        # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
 
     full_dataset = XRayDataset(
@@ -355,7 +349,7 @@ def get_dataloader(k_folds=K_FOLDS, batch_size=8, test_split=0.2, random_seed=12
     return kfold_loaders
 
 
-# # test
+# # For test
 # if __name__ == "__main__":
 #
 #     kfold_loaders = get_dataloader()

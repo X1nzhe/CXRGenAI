@@ -1,13 +1,9 @@
 import argparse
 import sys
 
-
 from config import BASE_PROMPT_PREFIX, BASE_PROMPT_SUFFIX
 from stable_diffusion_generator import XRayGenerator
 from train import Trainer
-# from evaluate import Evaluator
-# from generate import Generator
-# from models.cheXagent_evaluator import CheXagentEvaluator
 
 
 def main():
@@ -40,7 +36,6 @@ def main():
         generator = XRayGenerator()
         try:
             print(f"Loading model from {args.model_path}")
-            # model.load_model(args.model_path)
             model = generator.load_model(args.model_path)
         except Exception as e:
             print(f"Error loading model: {e}")
@@ -51,12 +46,6 @@ def main():
         ]
         generated_image_path = model.generate_and_save_image(prompt)
         print(f"Generated X-Ray image saved to path {generated_image_path}\n")
-
-
-        # print("Using CheXagent to evaluate the generated X-Ray image...")
-        # evaluator = CheXagentEvaluator()
-        # score = evaluator.evaluate_consistency(original_desc=args.description, image_path=generated_image_path,)
-        # print(f"Generated X-Ray image consistency score：{score}")
 
 
 if __name__ == "__main__":
