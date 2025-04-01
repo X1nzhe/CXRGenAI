@@ -1,8 +1,6 @@
 import os
 
 import config
-from config import IMAGES_DIR, IMAGE_HEIGHT, IMAGE_WIDTH, NUM_INFERENCE_STEPS, BASE_PROMPT_PREFIX, \
-    BASE_PROMPT_SUFFIX, DEVICE
 from datetime import datetime
 
 import torch
@@ -37,7 +35,7 @@ def add_prompt_to_image(image, prompt, max_chars_per_line=60):
 
 
 class XRayGenerator(nn.Module):
-    def __init__(self, model_name="CompVis/stable-diffusion-v1-4", device=DEVICE):
+    def __init__(self, model_name="CompVis/stable-diffusion-v1-4", device=config.DEVICE):
         super().__init__()
         diffusers_logging.set_verbosity_error()
         diffusers_logging.disable_progress_bar()
@@ -73,8 +71,13 @@ class XRayGenerator(nn.Module):
 
         self.pipeline.set_progress_bar_config(disable=True)
 
-    def generate_and_save_image(self, diagnose, steps=NUM_INFERENCE_STEPS, resolution=IMAGE_HEIGHT):
-        full_prompt = f"{BASE_PROMPT_PREFIX}{diagnose}{BASE_PROMPT_SUFFIX}"
+    def generate_and_save_image(self, diagnose, steps=None, resolution=None):
+        if steps is None:
+            steps = config.NUM_INFERENCE_STEPS
+        if resolution is None:
+            resolution = config.IMAGE_HEIGHT
+
+        full_prompt = f"{config.BASE_PROMPT_PREFIX}{diagnose}{config.BASE_PROMPT_SUFFIX}"
         generated_image = self.pipeline(
             full_prompt,
             num_inference_steps=steps,
@@ -83,7 +86,7 @@ class XRayGenerator(nn.Module):
         ).images[0]
         generated_image = generated_image.convert("L")
         image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
-        image_dir = IMAGES_DIR
+        image_dir = config.IMAGES_DIR
         os.makedirs(image_dir, exist_ok=True)
 
         file_path = os.path.join(image_dir, f"generated_{image_filename}.png")
@@ -99,9 +102,9 @@ class XRayGenerator(nn.Module):
         with torch.no_grad():
             outputs = self.pipeline(
                 prompts,
-                num_inference_steps=NUM_INFERENCE_STEPS,
-                height=IMAGE_HEIGHT,
-                width=IMAGE_WIDTH,
+                num_inference_steps=config.NUM_INFERENCE_STEPS,
+                height=config.IMAGE_HEIGHT,
+                width=config.IMAGE_WIDTH,
                 output_type="pt",
             )
             images = outputs.images  # [batch, C, H, W]

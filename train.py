@@ -9,9 +9,7 @@ import matplotlib.pyplot as plt
 from peft import get_peft_model, LoraConfig
 import time
 import numpy as np
-
-from config import CHECKPOINTS_DIR, BATCH_SIZE, EPOCHS, LEARNING_RATE, BASE_PROMPT_PREFIX, \
-    BASE_PROMPT_SUFFIX, K_FOLDS, IMAGES_DIR
+import config
 from data_loader import get_dataloader
 
 
@@ -39,8 +37,8 @@ def prepare_lora_model_for_training(pipeline):
 
 
 class Trainer:
-    def __init__(self, model, k_fold=K_FOLDS, batch_size=BATCH_SIZE, epochs=EPOCHS,
-                 lr=LEARNING_RATE, checkpoint_dir=CHECKPOINTS_DIR, images_dir=IMAGES_DIR, early_stopping_patience=3):
+    def __init__(self, model, k_fold=None, batch_size=None, epochs=None,
+                 lr=None, checkpoint_dir=None, images_dir=None, early_stopping_patience=3):
         self.model = model
         self.model.pipeline = prepare_lora_model_for_training(model.pipeline)
         accelerator = Accelerator(mixed_precision="bf16")
@@ -63,16 +61,31 @@ class Trainer:
         self.text_encoder.requires_grad_(True)
         self.vae.requires_grad_(False)
 
-        self.k_fold = k_fold
-        self.batch_size = batch_size
-        self.epochs = epochs
-        self.lr = lr
-        self.checkpoint_dir = checkpoint_dir
-        os.makedirs(checkpoint_dir, exist_ok=True)
-        self.early_stopping_patience = early_stopping_patience
+        self.k_fold = config.K_FOLDS
+        self.batch_size = config.BATCH_SIZE
+        self.epochs = config.EPOCHS
+        self.lr = config.LEARNING_RATE
 
-        self.images_dir = images_dir
+        if k_fold:
+            self.k_fold = k_fold
+        if batch_size:
+            self.batch_size = batch_size
+        if epochs:
+            self.epochs = epochs
+        if lr:
+            self.lr = lr
+
+        self.checkpoint_dir = config.CHECKPOINTS_DIR
+        if checkpoint_dir:
+            self.checkpoint_dir = checkpoint_dir
+        os.makedirs(checkpoint_dir, exist_ok=True)
+
+        self.images_dir = config.IMAGES_DIR
+        if images_dir:
+            self.images_dir = images_dir
         os.makedirs(images_dir, exist_ok=True)
+
+        self.early_stopping_patience = early_stopping_patience
 
     def train(self):
         kfold_loaders = get_dataloader(k_folds=self.k_fold, batch_size=self.batch_size)
@@ -199,7 +212,7 @@ class Trainer:
 
                 real_images = real_images.to(self.device)
                 prompts = [
-                    f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
+                    f"{config.BASE_PROMPT_PREFIX}{text}{config.BASE_PROMPT_SUFFIX}" for text in texts
                 ]
                 generated_images = self.model.generate_images_Tensor(prompts)
                 if epoch % 5 == 0 and batch_idx % 10 == 0:
@@ -224,7 +237,7 @@ class Trainer:
 
                 real_images = real_images.to(self.device)
                 prompts = [
-                    f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
+                    f"{config.BASE_PROMPT_PREFIX}{text}{config.BASE_PROMPT_SUFFIX}" for text in texts
                 ]
                 generated_images = self.model.generate_images_Tensor(prompts)
                 loss = self._compute_test_loss(generated_images, real_images)
@@ -245,7 +258,7 @@ class Trainer:
             latents = self.vae.encode(images).latent_dist.sample()
             latents = latents * self.vae.config.scaling_factor
         prompts = [
-            f"{BASE_PROMPT_PREFIX}{text}{BASE_PROMPT_SUFFIX}" for text in texts
+            f"{config.BASE_PROMPT_PREFIX}{text}{config.BASE_PROMPT_SUFFIX}" for text in texts
         ]
         text_inputs = self.tokenizer(
             prompts,

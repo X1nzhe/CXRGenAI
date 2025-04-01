@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 import re
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
-from config import DATA_DIR, IMAGE_WIDTH, IMAGE_HEIGHT, K_FOLDS
+import config
 
 # Indiana University Chest X-ray Collection dataset
 PNGS_FILENAME = "NLMCXR_png.tgz"
@@ -142,10 +142,10 @@ def parse_reports(reports_dir):
 
 
 def check_and_download_dataset():
-    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(config.DATA_DIR, exist_ok=True)
 
-    png_dir = os.path.join(DATA_DIR, "png")
-    png_tgz_path = os.path.join(DATA_DIR, PNGS_FILENAME)
+    png_dir = os.path.join(config.DATA_DIR, "png")
+    png_tgz_path = os.path.join(config.DATA_DIR, PNGS_FILENAME)
 
     print("\nChecking for Indiana University Chest X-ray Collection dataset...")
     if not os.path.exists(png_dir) or len(os.listdir(png_dir)) == 0:
@@ -163,8 +163,8 @@ def check_and_download_dataset():
     else:
         print("PNG images are already available.")
 
-    reports_dir = os.path.join(DATA_DIR, "reports")
-    reports_tgz_path = os.path.join(DATA_DIR, REPORTS_FILENAME)
+    reports_dir = os.path.join(config.DATA_DIR, "reports")
+    reports_tgz_path = os.path.join(config.DATA_DIR, REPORTS_FILENAME)
 
     if not os.path.exists(reports_dir) or len(os.listdir(reports_dir)) == 0:
         if os.path.exists(reports_tgz_path):
@@ -181,7 +181,7 @@ def check_and_download_dataset():
     else:
         print("Reports are already available.")
 
-    csv_path = os.path.join(DATA_DIR, "metadata.csv")
+    csv_path = os.path.join(config.DATA_DIR, "metadata.csv")
     if not os.path.exists(csv_path):
         print("\nProcessing reports and creating metadata CSV...")
         reports_df = parse_reports(reports_dir)
@@ -248,7 +248,7 @@ class XRayDataset(Dataset):
             }
 
 
-def get_dataloader(k_folds=K_FOLDS, batch_size=8, test_split=0.2, random_seed=123):
+def get_dataloader(k_folds=config.K_FOLDS, batch_size=8, test_split=0.2, random_seed=123):
 
     class ImageResize:
         def __init__(self, target_width, target_height):
@@ -275,13 +275,13 @@ def get_dataloader(k_folds=K_FOLDS, batch_size=8, test_split=0.2, random_seed=12
     np.random.seed(random_seed)
 
     transform = transforms.Compose([
-        ImageResize(target_width=IMAGE_WIDTH, target_height=IMAGE_HEIGHT),
+        ImageResize(target_width=config.IMAGE_WIDTH, target_height=config.IMAGE_HEIGHT),
         transforms.ToTensor(),
     ])
 
     full_dataset = XRayDataset(
-        csv_file=os.path.join(DATA_DIR, "metadata.csv"),
-        img_dir=os.path.join(DATA_DIR, "png"),
+        csv_file=os.path.join(config.DATA_DIR, "metadata.csv"),
+        img_dir=os.path.join(config.DATA_DIR, "png"),
         transform=transform
     )
 
