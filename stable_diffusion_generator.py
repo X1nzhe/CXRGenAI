@@ -1,5 +1,6 @@
 import os
 
+import config
 from config import IMAGES_DIR, IMAGE_HEIGHT, IMAGE_WIDTH, NUM_INFERENCE_STEPS, BASE_PROMPT_PREFIX, \
     BASE_PROMPT_SUFFIX, DEVICE
 from datetime import datetime

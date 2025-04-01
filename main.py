@@ -23,15 +23,9 @@ def main():
     )
 
     args = parser.parse_args()
-    if args.env == "dev":
-        config.ENV = args.env
-        config.CONFIG = config.DEV_CONFIG if config.ENV == "dev" else config.PRODUCT_CONFIG
-        config.EPOCHS = config.CONFIG["EPOCHS"]
-        config.K_FOLDS = config.CONFIG["K_FOLDS"]
-        config.BATCH_SIZE = config.CONFIG["BATCH_SIZE"]
-        config.IMAGE_WIDTH = config.CONFIG["IMAGE_WIDTH"]
-        config.IMAGE_HEIGHT = config.CONFIG["IMAGE_HEIGHT"]
-        config.NUM_INFERENCE_STEPS = config.CONFIG["NUM_INFERENCE_STEPS"]
+
+    config.ENV = args.env
+    config.reload_config()
     print(f"\nRunning with environment: {config.ENV}")
 
     if args.mode == "train":
