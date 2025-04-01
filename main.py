@@ -1,5 +1,6 @@
 import argparse
 import sys
+import config
 
 from config import BASE_PROMPT_PREFIX, BASE_PROMPT_SUFFIX
 from stable_diffusion_generator import XRayGenerator
@@ -8,6 +9,9 @@ from train import Trainer
 
 def main():
     parser = argparse.ArgumentParser(description="Text-to-Medical-Image Model")
+    parser.add_argument(
+        "--env", choices=["dev", "product"], default="product", help="Choose runtime environment"
+    )
     parser.add_argument(
         "--mode", choices=["train", "generate"], required=True, help="Choose mode：'train' or 'generate'"
     )
@@ -19,8 +23,21 @@ def main():
     )
 
     args = parser.parse_args()
+    if args.env == "dev":
+        config.ENV = args.env
+        config.CONFIG = config.DEV_CONFIG if config.ENV == "dev" else config.PRODUCT_CONFIG
+        config.EPOCHS = config.CONFIG["EPOCHS"]
+        config.K_FOLDS = config.CONFIG["K_FOLDS"]
+        config.BATCH_SIZE = config.CONFIG["BATCH_SIZE"]
+        config.IMAGE_WIDTH = config.CONFIG["IMAGE_WIDTH"]
+        config.IMAGE_HEIGHT = config.CONFIG["IMAGE_HEIGHT"]
+        config.NUM_INFERENCE_STEPS = config.CONFIG["NUM_INFERENCE_STEPS"]
+    print(f"\nRunning with environment: {config.ENV}")
+
     if args.mode == "train":
-        print("Start model training...")
+        print("\nStart model training...")
+        print(f"Epochs: {config.EPOCHS}, K_folds: {config.K_FOLDS}, Batch size: {config.BATCH_SIZE}, Image width: {config.IMAGE_WIDTH}, Image height: {config.IMAGE_HEIGHT}, Number of inference steps: {config.NUM_INFERENCE_STEPS}")
+
         model = XRayGenerator()
         trainer = Trainer(model)
         trainer.train()
@@ -33,6 +50,7 @@ def main():
             sys.exit(1)
 
         print("\nStart X-Ray image generating...")
+        print(f"Image width: {config.IMAGE_WIDTH}, Image height: {config.IMAGE_HEIGHT}, Number of inference steps: {config.NUM_INFERENCE_STEPS}")
         generator = XRayGenerator()
         try:
             print(f"Loading model from {args.model_path}")
