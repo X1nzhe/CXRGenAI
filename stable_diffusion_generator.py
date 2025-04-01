@@ -78,9 +78,9 @@ class XRayGenerator(nn.Module):
             full_prompt,
             num_inference_steps=steps,
             height=resolution,
-            width=resolution
+            width=resolution,
         ).images[0]
-
+        generated_image = generated_image.convert("L")
         image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
         image_dir = IMAGES_DIR
         os.makedirs(image_dir, exist_ok=True)
