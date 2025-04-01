@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 import re
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
-from config import DATA_DIR, IMAGE_WIDTH, IMAGE_HEIGHT
+from config import DATA_DIR, IMAGE_WIDTH, IMAGE_HEIGHT, K_FOLDS
 
 # Indiana University Chest X-ray Collection dataset
 PNGS_FILENAME = "NLMCXR_png.tgz"
@@ -147,7 +147,7 @@ def check_and_download_dataset():
     png_dir = os.path.join(DATA_DIR, "png")
     png_tgz_path = os.path.join(DATA_DIR, PNGS_FILENAME)
 
-    print("Checking for Indiana University Chest X-ray Collection dataset...")
+    print("\nChecking for Indiana University Chest X-ray Collection dataset...")
     if not os.path.exists(png_dir) or len(os.listdir(png_dir)) == 0:
         if os.path.exists(png_tgz_path):
             print("PNG zipfile exists.")
@@ -155,7 +155,7 @@ def check_and_download_dataset():
             print(f"Downloading PNG images from {DATASET_URL}")
             download_file_multithread(DATASET_URL, png_tgz_path)
 
-        print("Extracting PNG images...")
+        print("\nExtracting PNG images...")
         os.makedirs(png_dir, exist_ok=True)
         extract_tarfile(png_tgz_path, png_dir)
 
@@ -170,10 +170,10 @@ def check_and_download_dataset():
         if os.path.exists(reports_tgz_path):
             print("Reports zipfile exists.")
         else:
-            print(f"Downloading reports from {REPORTS_URL}")
+            print(f"\nDownloading reports from {REPORTS_URL}")
             download_file_singlethread(REPORTS_URL, reports_tgz_path)
 
-        print("Extracting reports...")
+        print("\nExtracting reports...")
         os.makedirs(reports_dir, exist_ok=True)
         extract_tarfile(reports_tgz_path, reports_dir)
 
@@ -183,7 +183,7 @@ def check_and_download_dataset():
 
     csv_path = os.path.join(DATA_DIR, "metadata.csv")
     if not os.path.exists(csv_path):
-        print("Processing reports and creating metadata CSV...")
+        print("\nProcessing reports and creating metadata CSV...")
         reports_df = parse_reports(reports_dir)
 
         valid_entries = []
@@ -229,6 +229,9 @@ class XRayDataset(Dataset):
             if len(report) > self.max_length:
                 report = report[:self.max_length]
 
+            if image.min() < -1 or image.max() > 1:
+                raise ValueError("Image normalization failed!")
+
             return {
                 'image': image,
                 'report': report,
@@ -245,7 +248,7 @@ class XRayDataset(Dataset):
             }
 
 
-def get_dataloader(k_folds=5, batch_size=8, test_split=0.2, random_seed=123):
+def get_dataloader(k_folds=K_FOLDS, batch_size=8, test_split=0.2, random_seed=123):
 
     class ImageResize:
         def __init__(self, target_width, target_height):
@@ -271,15 +274,9 @@ def get_dataloader(k_folds=5, batch_size=8, test_split=0.2, random_seed=123):
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)
 
-    # transform = transforms.Compose([
-    #     transforms.Resize((256, 256)),
-    #     transforms.ToTensor(),
-    #     transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-    # ])
     transform = transforms.Compose([
         ImageResize(target_width=IMAGE_WIDTH, target_height=IMAGE_HEIGHT),
         transforms.ToTensor(),
-        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
 
     full_dataset = XRayDataset(
@@ -306,7 +303,7 @@ def get_dataloader(k_folds=5, batch_size=8, test_split=0.2, random_seed=123):
         num_workers=os.cpu_count(),
         pin_memory=True
     )
-    print(f"Created Test dataset with {test_size} samples.")
+    print(f"\nCreated Test dataset with {test_size} samples.")
 
     # 80% of full dataset for training and validating
     print(f"Creating K-fold (K={k_folds}) datasets...")
@@ -352,7 +349,7 @@ def get_dataloader(k_folds=5, batch_size=8, test_split=0.2, random_seed=123):
     return kfold_loaders
 
 
-# # test
+# # For test
 # if __name__ == "__main__":
 #
 #     kfold_loaders = get_dataloader()
