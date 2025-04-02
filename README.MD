@@ -5,7 +5,7 @@ This project aims to develop a diffusion-based deep learning model
 for generating synthetic X-ray images from textual descriptions. 
 By training the model, it enables the automatic generation of medical images from diagnostic inputs.
 ### Features
-- #### Text-to-X-ray with Optimized Stable Diffusion
+- #### Text-to-X-ray generation with Optimized Stable Diffusion
     Generates synthetic X-ray images from textual descriptions by adapting Stable Diffusion with latent space optimization, improving image realism and medical applicability.
 - #### Automated Dataset Handling
     Automated downloading and preprocessing dataset with multi-threaded acceleration for efficient training.
@@ -25,6 +25,6 @@ By training the model, it enables the automatic generation of medical images fro
 ### Compatibility Notice
 >The project is independently runnable; 
 >however, it has been tested and trained on Google Colab, 
->relying on Colab’s specific environment and hardware accelerations (e.g., GPU/TPU). 
+>relying on Colab’s specific environment and hardware accelerations (e.g., A100 GPU or L4 GPU). 
 >Running it on other platforms may require additional setup, 
 >and proper functionality cannot be guaranteed.
