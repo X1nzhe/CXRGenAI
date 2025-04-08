@@ -5,22 +5,52 @@ import torch
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {DEVICE}")
 
-BATCH_SIZE = 48
+ENV = os.getenv("ENV", "product")
+
+DEV_CONFIG = {
+    "EPOCHS": 1,
+    "K_FOLDS": 2,
+    "BATCH_SIZE": 8,
+    "IMAGE_WIDTH": 128,
+    "IMAGE_HEIGHT": 128,
+    "NUM_INFERENCE_STEPS": 20,
+}
+
+PRODUCT_CONFIG = {
+    "EPOCHS": 100,
+    "K_FOLDS": 5,
+    "BATCH_SIZE": 48,
+    "IMAGE_WIDTH": 256,
+    "IMAGE_HEIGHT": 256,
+    "NUM_INFERENCE_STEPS": 500,
+}
+
+
+def get_config():
+    return DEV_CONFIG if ENV == "dev" else PRODUCT_CONFIG
+
+
+def reload_config():
+    global EPOCHS, K_FOLDS, BATCH_SIZE, IMAGE_WIDTH, IMAGE_HEIGHT, NUM_INFERENCE_STEPS
+    config = get_config()
+    EPOCHS = config["EPOCHS"]
+    K_FOLDS = config["K_FOLDS"]
+    BATCH_SIZE = config["BATCH_SIZE"]
+    IMAGE_WIDTH = config["IMAGE_WIDTH"]
+    IMAGE_HEIGHT = config["IMAGE_HEIGHT"]
+    NUM_INFERENCE_STEPS = config["NUM_INFERENCE_STEPS"]
+
+
+CONFIG = get_config()
+EPOCHS = CONFIG["EPOCHS"]
+K_FOLDS = CONFIG["K_FOLDS"]
+BATCH_SIZE = CONFIG["BATCH_SIZE"]
+IMAGE_WIDTH = CONFIG["IMAGE_WIDTH"]
+IMAGE_HEIGHT = CONFIG["IMAGE_HEIGHT"]
+NUM_INFERENCE_STEPS = CONFIG["NUM_INFERENCE_STEPS"]
+reload_config()
+
 LEARNING_RATE = 1e-4
-
-# Test config
-# EPOCHS = 1
-# K_FOLDS = 2
-# IMAGE_WIDTH = 128
-# IMAGE_HEIGHT = 128
-# NUM_INFERENCE_STEPS = 20
-
-# Product config
-EPOCHS = 100
-K_FOLDS = 5
-IMAGE_WIDTH = 256
-IMAGE_HEIGHT = 256
-NUM_INFERENCE_STEPS = 250
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGES_DIR = os.path.abspath(os.path.join(BASE_DIR, ".", "images"))
