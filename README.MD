@@ -201,5 +201,6 @@ display(Image.open(generated_img_path))
 - _**Cosine Annealing LR Scheduler:**_  Deploys a Cosine Annealing Learning Rate Scheduler for smooth decay. 
 - _**Gradient Norm Clipping:**_ Applies gradient norm clipping to prevent gradient explosion and stabilize training.
 - _**Evaluation Strategy:**_ Tracks model performance with MSE (Mean Squared Error) loss, SSIM (Structural Similarity Index) and PSNR (Peak Signal-to-Noise Ratio), integrating an early stopping mechanism based on SSIM.
+- _**Early Stopping:**_ Stops training early if SSIM plateaus to prevent overfitting and save computation resources.
 - _**Cross-Validation:**_ Uses an 80/20 train-test split with 5-fold cross-validation for comprehensive model evaluation.
 
