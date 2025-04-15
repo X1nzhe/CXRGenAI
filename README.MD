@@ -9,6 +9,11 @@ By training the model, it enables the automatic generation of medical images fro
 >however, it has been tested on Google Colab, 
 >relying on Colab’s specific environment and hardware accelerations (e.g., A100 GPU or L4 GPU). 
 >Running it on other platforms may require additional setup.
+## Source Code Access
+The project is hosted on GitHub. You can find the repository at the link below.
+```
+https://github.com/X1nzhe/CXRGenAI.git
+```
 ## Instructions to run the code (in Google Colab)
 >❗️❗️ Two ready-to-use Jupyter notebooks (*_Example_Usage.ipynb) are provided for your convenience. 
 
