@@ -11,8 +11,8 @@ import time
 import numpy as np
 import config
 from data_loader import get_dataloader
-from stable_diffusion_baseline import BaselineEvaluator
-
+from stable_diffusion_baseline import BaselineEvaluator, load_baseline_pipeline
+from torchvision.utils import make_grid
 
 def prepare_lora_model_for_training(pipeline):
 
@@ -160,19 +160,35 @@ class Trainer:
         seconds = total_time % 60
         print(f"\nTraining completed at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))} UTC")
         print(f"Total training time: {int(hours)} hours {int(minutes)} minutes {int(seconds):.2f} seconds")
-        self._plot_training_progress(train_losses, val_losses, ssim_scores, psnr_scores)
+        self._plot_training_progressV2(train_losses, val_losses, ssim_scores, psnr_scores)
 
         print(f"Training complete. Running final test on the best model from {best_model_info['path']}...\n")
         finetuned_model = self.model.load_modelV2(best_model_info["path"])
         test_loader = kfold_loaders[0]['test_loader']
         test_loss, test_ssim, test_psnr = self._test_epoch(test_loader, ssim_metric, psnr_metric)
-        print(f"Final Test - Avg Test Loss: {test_loss:.4f}, Avg Test SSIM: {test_ssim:.4f}, Avg Test PSNR: {test_psnr:.4f}")
+
+        baseline_model = load_baseline_pipeline().to(self.device)
+        baseline_model.eval()
+        baseline_evaluator = BaselineEvaluator(baseline_model, self.device)
+        baseline_loss, baseline_ssim, baseline_psnr = baseline_evaluator.evaluate(test_loader)
+
+        print(f"Final Test - Fine-tuned Model- Avg Test Loss: {test_loss:.4f}, Avg Test SSIM: {test_ssim:.4f}, Avg Test PSNR: {test_psnr:.4f}")
+        print(f"Final Test - Basemodel - Avg Test Loss: {baseline_loss:.4f}, Avg Test SSIM: {baseline_ssim:.4f}, Avg Test PSNR: {baseline_psnr:.4f}")
+
         print(f"Generating some images...")
         for batch in test_loader:
             prompts = batch['report']
             for prompt in prompts:
+                print(f'prompt: {prompt}')
                 finetuned_model.generate_and_save_imageV2(prompt)
+                baseline_model.generate_and_save_imageV2(prompt)
             break
+
+        finetuned_scores = [test_loss, test_ssim, test_psnr]
+        baseline_scores = [baseline_loss, baseline_ssim, baseline_psnr]
+        self._plot_finetune_baseline_scores(finetuned_scores, baseline_scores)
+
+
 
     def _train_epoch(self, train_loader, optimizer, fold, epoch):
         self.unet.train()
@@ -307,6 +323,44 @@ class Trainer:
         plt.savefig(os.path.join(self.images_dir, "training_progress.png"))
         plt.show()
 
+    def _plot_training_progressV2(self, train_losses, val_losses, ssim_scores, psnr_scores):
+        import os
+        import matplotlib.pyplot as plt
+
+        # Train & Val Loss
+        plt.figure(figsize=(8, 5))
+        plt.plot(train_losses, label="Train Loss")
+        plt.plot(val_losses, label="Val Loss")
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.title("Training and Validation Loss")
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(os.path.join(self.images_dir, "loss_curve.png"))
+        plt.close()
+
+        # SSIM & PSNR
+        fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+
+        ax[0].plot(ssim_scores, label="SSIM", color="green")
+        ax[0].set_xlabel("Epoch")
+        ax[0].set_ylabel("SSIM")
+        ax[0].set_title("Validation SSIM")
+        ax[0].legend()
+        ax[0].grid(True)
+
+        ax[1].plot(psnr_scores, label="PSNR", color="blue")
+        ax[1].set_xlabel("Epoch")
+        ax[1].set_ylabel("PSNR (dB)")
+        ax[1].set_title("Validation PSNR")
+        ax[1].legend()
+        ax[1].grid(True)
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(self.images_dir, "ssim_psnr_curve.png"))
+        plt.close()
+
     def _plot_image_pair(self, fold, epoch, batch_idx, real_image, gen_image):
 
         real_np = np.rot90(real_image[0, 0].cpu().numpy(), k=2)
@@ -328,3 +382,23 @@ class Trainer:
         plt.tight_layout()
         plt.savefig(os.path.join(self.images_dir, f"fold{fold}_epoch{epoch}_batch{batch_idx}_comparison.png"))
         plt.close()
+
+    def _plot_finetune_baseline_scores(self, finetuned_scores, baseline_scores):
+        metrics = ['MSE Loss', 'SSIM', 'PSNR']
+        x = np.arange(len(metrics))
+        width = 0.35
+
+        fig, ax = plt.subplots()
+        ax.bar(x - width / 2, baseline_scores, width, label='Baseline')
+        ax.bar(x + width / 2, finetuned_scores, width, label='Fine-tuned')
+
+        ax.set_ylabel('Scores')
+        ax.set_title('Fine-tuned vs Baseline Model on Test Set')
+        ax.set_xticks(x)
+        ax.set_xticklabels(metrics)
+        ax.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(os.path.join(self.images_dir, f"model_comparison.png"))
+        plt.close()
+
