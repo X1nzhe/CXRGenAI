@@ -11,6 +11,7 @@ import time
 import numpy as np
 import config
 from data_loader import get_dataloader
+from stable_diffusion_baseline import BaselineEvaluator
 
 
 def prepare_lora_model_for_training(pipeline):
@@ -73,6 +74,7 @@ class Trainer:
         os.makedirs(self.images_dir, exist_ok=True)
 
         self.early_stopping_patience = early_stopping_patience
+
 
     def train(self):
         kfold_loaders = get_dataloader(k_folds=self.k_fold, batch_size=self.batch_size)

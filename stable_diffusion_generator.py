@@ -145,7 +145,7 @@ class XRayGenerator(nn.Module):
 
     def load_modelV2(self, path):
         print(f"Loading model from path: {path}")
-        model = XRayGenerator(model_name=self.model_name, device=self.device)
+        model = XRayGenerator()
         try:
             text_encoder = CLIPTextModel.from_pretrained(
                 os.path.join(path, "text_encoder"),
