@@ -169,7 +169,7 @@ class Trainer:
         for batch in test_loader:
             prompts = batch['report']
             for prompt in prompts:
-                finetuned_model.generate_and_save_image(prompt)
+                finetuned_model.generate_and_save_imageV2(prompt)
             break
 
     def _train_epoch(self, train_loader, optimizer, fold, epoch):

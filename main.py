@@ -55,7 +55,7 @@ def main():
         prompt = [
             f"{config.BASE_PROMPT_PREFIX}{args.description}{config.BASE_PROMPT_SUFFIX}"
         ]
-        generated_image_path = model.generate_and_save_image(prompt)
+        generated_image_path = model.generate_and_save_imageV2(prompt)
         print(f"Generated X-Ray image saved to path {generated_image_path}\n")
 
 
