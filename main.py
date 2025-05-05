@@ -47,7 +47,7 @@ def main():
         generator = XRayGenerator()
         try:
             print(f"Loading model from {args.model_path}")
-            model = generator.load_model(args.model_path)
+            model = generator.load_modelV2(args.model_path)
         except Exception as e:
             print(f"Error loading model: {e}")
             sys.exit(1)

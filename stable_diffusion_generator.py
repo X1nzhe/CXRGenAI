@@ -71,19 +71,27 @@ class XRayGenerator(nn.Module):
 
         self.pipeline.set_progress_bar_config(disable=True)
 
-    def generate_and_save_image(self, diagnose, steps=None, resolution=None):
+    def generate_and_save_imageV2(self, diagnose, steps=None, resolution=None):
         if steps is None:
             steps = config.NUM_INFERENCE_STEPS
         if resolution is None:
             resolution = config.IMAGE_HEIGHT
 
+        self.pipeline.unet.eval()
+        self.pipeline.text_encoder.eval()
+        self.pipeline.vae.eval()
+
         full_prompt = f"{config.BASE_PROMPT_PREFIX}{diagnose}{config.BASE_PROMPT_SUFFIX}"
-        generated_image = self.pipeline(
-            full_prompt,
-            num_inference_steps=steps,
-            height=resolution,
-            width=resolution,
-        ).images[0]
+
+        with torch.no_grad():
+            generated_image = self.pipeline(
+                full_prompt,
+                num_inference_steps=steps,
+                height=resolution,
+                width=resolution,
+                generator=torch.manual_seed(123),
+            ).images[0]
+
         generated_image = generated_image.convert("L")
         image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
         image_dir = config.IMAGES_DIR
@@ -95,6 +103,31 @@ class XRayGenerator(nn.Module):
         print(f"Image saved to {file_path}")
 
         return file_path
+
+    # def generate_and_save_image(self, diagnose, steps=None, resolution=None):
+    #     if steps is None:
+    #         steps = config.NUM_INFERENCE_STEPS
+    #     if resolution is None:
+    #         resolution = config.IMAGE_HEIGHT
+    #
+    #     full_prompt = f"{config.BASE_PROMPT_PREFIX}{diagnose}{config.BASE_PROMPT_SUFFIX}"
+    #     generated_image = self.pipeline(
+    #         full_prompt,
+    #         num_inference_steps=steps,
+    #         height=resolution,
+    #         width=resolution,
+    #     ).images[0]
+    #     generated_image = generated_image.convert("L")
+    #     image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+    #     image_dir = config.IMAGES_DIR
+    #     os.makedirs(image_dir, exist_ok=True)
+    #
+    #     file_path = os.path.join(image_dir, f"generated_{image_filename}.png")
+    #     generated_image.save(file_path)
+    #     print(f"Diagnose: {diagnose}")
+    #     print(f"Image saved to {file_path}")
+    #
+    #     return file_path
 
     def generate_images_Tensor(self, prompts):
         if not isinstance(prompts, list):
@@ -110,20 +143,58 @@ class XRayGenerator(nn.Module):
             images = outputs.images  # [batch, C, H, W]
         return images
 
-    def load_model(self, path):
-        text_encoder = CLIPTextModel.from_pretrained(
-            os.path.join(path, "text_encoder"),
+    def load_modelV2(self, path):
+        print(f"Loading model from path: {path}")
+        model = XRayGenerator(model_name=self.model_name, device=self.device)
+        try:
+            text_encoder = CLIPTextModel.from_pretrained(
+                os.path.join(path, "text_encoder"),
+                torch_dtype=torch.bfloat16
+            ).to(self.device)
 
-        ).to(self.device)
-        unet = UNet2DConditionModel.from_pretrained(
-            os.path.join(path, "unet"),
+            unet = UNet2DConditionModel.from_pretrained(
+                os.path.join(path, "unet"),
+                torch_dtype=torch.bfloat16
+            ).to(self.device)
 
-        ).to(self.device)
-        pipeline = StableDiffusionPipeline.from_pretrained(
-            "CompVis/stable-diffusion-v1-4",
-        ).to(self.device)
-        pipeline.unet = unet
-        pipeline.text_encoder = text_encoder
-        model = XRayGenerator()
-        model.pipeline = pipeline
-        return model
+            text_encoder.eval()
+            unet.eval()
+
+            pipeline = StableDiffusionPipeline.from_pretrained(
+                self.model_name,
+                text_encoder=text_encoder,
+                unet=unet,
+                vae=model.vae,
+                tokenizer=model.tokenizer,
+                safety_checker=None,
+                requires_safety_checker=False
+            ).to(self.device)
+
+            pipeline.set_progress_bar_config(disable=True)
+            model.pipeline = pipeline
+
+            print("Successfully loaded fine-tuned model components")
+            return model
+
+        except Exception as e:
+            print(f"Error loading model components: {e}")
+            print("Falling back to base model")
+            return self
+
+    # def load_model(self, path):
+    #     text_encoder = CLIPTextModel.from_pretrained(
+    #         os.path.join(path, "text_encoder"),
+    #
+    #     ).to(self.device)
+    #     unet = UNet2DConditionModel.from_pretrained(
+    #         os.path.join(path, "unet"),
+    #
+    #     ).to(self.device)
+    #     pipeline = StableDiffusionPipeline.from_pretrained(
+    #         "CompVis/stable-diffusion-v1-4",
+    #     ).to(self.device)
+    #     pipeline.unet = unet
+    #     pipeline.text_encoder = text_encoder
+    #     model = XRayGenerator()
+    #     model.pipeline = pipeline
+    #     return model
