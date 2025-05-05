@@ -168,7 +168,6 @@ class Trainer:
         test_loss, test_ssim, test_psnr = self._test_epoch(test_loader, ssim_metric, psnr_metric)
 
         baseline_model = load_baseline_pipeline().to(self.device)
-        baseline_model.eval()
         baseline_evaluator = BaselineEvaluator(baseline_model, self.device)
         baseline_loss, baseline_ssim, baseline_psnr = baseline_evaluator.evaluate(test_loader)
 

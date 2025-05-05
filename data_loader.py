@@ -25,6 +25,27 @@ REPORTS_URL = f"https://openi.nlm.nih.gov/imgs/collections/{REPORTS_FILENAME}"
 NUM_THREADS = 8
 
 
+class ImageResize:
+    def __init__(self, target_width, target_height):
+        self.target_width = target_width
+        self.target_height = target_height
+
+    def __call__(self, img):
+        w, h = img.size
+        ratio = min(self.target_width / w, self.target_height / h)
+        img = resize(img, (int(h * ratio), int(w * ratio)))
+
+        padding = (
+            (self.target_width - img.width) // 2,
+            (self.target_height - img.height) // 2,
+            self.target_width - img.width - (self.target_width - img.width) // 2,
+            self.target_height - img.height - (self.target_height - img.height) // 2
+        )
+        img = pad(img, padding, fill=0)
+
+        return img
+
+
 def download_chunk(url, start, end, dest_path, progress_bar):
     headers = {"Range": f"bytes={start}-{end}"}
     response = requests.get(url, headers=headers, stream=True)
@@ -248,35 +269,20 @@ class XRayDataset(Dataset):
             }
 
 
+def to_rgd(img):
+    return img.convert('RGB') if img.mode != 'RGB' else img
+
+
 def get_dataloader(k_folds=config.K_FOLDS, batch_size=8, test_split=0.2, random_seed=123):
-
-    class ImageResize:
-        def __init__(self, target_width, target_height):
-            self.target_width = target_width
-            self.target_height = target_height
-
-        def __call__(self, img):
-            w, h = img.size
-            ratio = min(self.target_width / w, self.target_height / h)
-            img = resize(img, (int(h * ratio), int(w * ratio)))
-
-            padding = (
-                (self.target_width - img.width) // 2,
-                (self.target_height - img.height) // 2,
-                self.target_width - img.width - (self.target_width - img.width) // 2,
-                self.target_height - img.height - (self.target_height - img.height) // 2
-            )
-            img = pad(img, padding, fill=0)
-
-            return img
-
     check_and_download_dataset()
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)
 
     transform = transforms.Compose([
         ImageResize(target_width=config.IMAGE_WIDTH, target_height=config.IMAGE_HEIGHT),
-        transforms.ToTensor(),
+        transforms.Lambda(to_rgd),
+        transforms.ToTensor(),  # To range [0, 1]
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  # To range [-1, 1] for stable diffusion
     ])
 
     full_dataset = XRayDataset(
@@ -349,19 +355,25 @@ def get_dataloader(k_folds=config.K_FOLDS, batch_size=8, test_split=0.2, random_
     return kfold_loaders
 
 
-# # For test
-# if __name__ == "__main__":
-#
-#     kfold_loaders = get_dataloader()
-#
-#     sample_fold = kfold_loaders[0]
-#     print(f"Fold: {sample_fold['fold']}")
-#     print(f"Training samples: {sample_fold['train_size']}")
-#     print(f"Validation samples: {sample_fold['val_size']}")
-#     print(f"Test samples: {sample_fold['test_size']}")
-#
-#     train_loader = sample_fold['train_loader']
-#     for batch in train_loader:
-#         print(f"Batch image shape: {batch['image'].shape}")
-#         print(f"Sample report: {batch['report'][0][:100]}...")
-#         break
+# For test
+if __name__ == "__main__":
+
+    kfold_loaders = get_dataloader()
+
+    sample_fold = kfold_loaders[0]
+    print(f"Fold: {sample_fold['fold']}")
+    print(f"Training samples: {sample_fold['train_size']}")
+    print(f"Validation samples: {sample_fold['val_size']}")
+    print(f"Test samples: {sample_fold['test_size']}")
+
+    train_loader = sample_fold['train_loader']
+    for batch in train_loader:
+        print(f"Batch image shape: {batch['image'].shape}")
+
+        images = batch['image']
+        min_val = images.min().item()
+        max_val = images.max().item()
+        print(f"Image pixel value range: [{min_val}, {max_val}]")
+
+        print(f"Sample report: {batch['report'][0][:100]}...")
+        break
