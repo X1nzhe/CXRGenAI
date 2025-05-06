@@ -161,7 +161,7 @@ class XRayGenerator(nn.Module):
             unet.eval()
 
             pipeline = StableDiffusionPipeline.from_pretrained(
-                self.model_name,
+                "CompVis/stable-diffusion-v1-4",
                 text_encoder=text_encoder,
                 unet=unet,
                 vae=model.vae,

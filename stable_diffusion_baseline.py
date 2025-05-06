@@ -30,7 +30,15 @@ class BaselineEvaluator:
                 prompts = [
                     f"{config.BASE_PROMPT_PREFIX}{text}{config.BASE_PROMPT_SUFFIX}" for text in texts
                 ]
-                generated_images = self.model.generate_images_Tensor(prompts)
+
+                outputs = self.model(
+                    prompts,
+                    num_inference_steps=config.NUM_INFERENCE_STEPS,
+                    height=config.IMAGE_HEIGHT,
+                    width=config.IMAGE_WIDTH,
+                    output_type="pt",
+                )
+                generated_images = outputs.images 
 
                 loss = torch.nn.functional.mse_loss(generated_images, real_images)
                 total_loss += loss.item()
