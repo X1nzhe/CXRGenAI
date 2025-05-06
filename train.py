@@ -45,25 +45,25 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt,
         img1 = img1.resize((img1.width, new_height))
         img2 = img2.resize((img2.width, new_height))
 
-    text_height = 40
-    new_img = Image.new("L", (img1.width + img2.width, img1.height + text_height), color=255)
+    img1_np = np.array(img1)
+    img2_np = np.array(img2)
 
-    new_img.paste(img1, (0, text_height))
-    new_img.paste(img2, (img1.width, text_height))
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
-    new_img_rgb = new_img.convert("RGB")
-    draw = ImageDraw.Draw(new_img_rgb)
-    try:
-        font = ImageFont.truetype("arial.ttf", size=20)
-    except:
-        font = ImageFont.load_default()
+    axes[0].imshow(img1_np, cmap="gray")
+    axes[0].set_title("Fine-tuned Model", fontsize=12)
+    axes[0].axis("off")
 
-    draw.text((10, 10), f"Prompt: {prompt}", fill=(0, 0, 0), font=font)
-    draw.text((img1.width // 2 - 60, text_height), "Fine-tuned Model", fill=(0, 0, 0), font=font)
-    draw.text((img1.width + img2.width // 2 - 60, text_height), "Baseline Model", fill=(0, 0, 0), font=font)
+    axes[1].imshow(img2_np, cmap="gray")
+    axes[1].set_title("Baseline Model", fontsize=12)
+    axes[1].axis("off")
 
-    final_img = new_img_rgb.convert("L")
-    final_img.save(save_path)
+    fig.suptitle(f"Prompt: {prompt}", fontsize=14, y=1.02)
+
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.85)
+    plt.savefig(save_path, bbox_inches="tight")
+    plt.close()
     print(f"Saved comparison image to {save_path}")
 
 
