@@ -13,6 +13,7 @@ import config
 from data_loader import get_dataloader
 from stable_diffusion_baseline import BaselineEvaluator, load_baseline_pipeline
 from datetime import datetime
+import textwrap
 
 def prepare_lora_model_for_training(pipeline):
     unet_lora_config = LoraConfig(
@@ -50,8 +51,9 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
 
     img1_np = np.array(img1)
     img2_np = np.array(img2)
+    wrapped_prompt = "\n".join(textwrap.wrap(prompt, width=300))
 
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
 
     axes[0].imshow(img1_np, cmap="gray")
     axes[0].set_title("Fine-tuned Model", fontsize=12)
@@ -61,7 +63,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
     axes[1].set_title("Baseline Model", fontsize=12)
     axes[1].axis("off")
 
-    fig.suptitle(f"Prompt: {prompt}", fontsize=14, y=1.02)
+    fig.suptitle(f"Prompt: {wrapped_prompt}", fontsize=12, y=1.05, ha='left', x=0.01)
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.85)
