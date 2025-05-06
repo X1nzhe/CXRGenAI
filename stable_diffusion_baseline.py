@@ -61,15 +61,15 @@ class BaselineEvaluator:
         if resolution is None:
             resolution = config.IMAGE_HEIGHT
 
-        self.pipeline.unet.eval()
-        self.pipeline.text_encoder.eval()
-        self.pipeline.vae.eval()
+        self.model.unet.eval()
+        self.model.text_encoder.eval()
+        self.model.vae.eval()
 
         full_prompt = f"{config.BASE_PROMPT_PREFIX}{diagnose}{config.BASE_PROMPT_SUFFIX}"
 
         with torch.no_grad():
-            self.pipeline.to(torch.float32)
-            output = self.pipeline(
+            self.model.to(torch.float32)
+            output = self.model(
                 full_prompt,
                 num_inference_steps=steps,
                 height=resolution,
