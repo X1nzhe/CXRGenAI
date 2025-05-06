@@ -4,6 +4,7 @@ import config
 
 from stable_diffusion_generator import XRayGenerator
 from train import Trainer
+from hpo_runner import run_hpo
 
 
 def main():
@@ -29,13 +30,34 @@ def main():
 
     if args.mode == "train":
         print("\n Hyperparameters searching...")
-
+        best_params = run_hpo(n_trials=30)
+        batch_size = best_params["batch_size"]
 
         print("\nStart model training...")
-        print(f"Epochs: {config.EPOCHS}, K_folds: {config.K_FOLDS}, Batch size: {config.BATCH_SIZE}, Image width: {config.IMAGE_WIDTH}, Image height: {config.IMAGE_HEIGHT}, Number of inference steps: {config.NUM_INFERENCE_STEPS}")
+        print(
+            f"Epochs: {config.EPOCHS}, K_folds: {config.K_FOLDS}, Batch size: {batch_size}, Image width: {config.IMAGE_WIDTH}, Image height: {config.IMAGE_HEIGHT}, Number of inference steps: {config.NUM_INFERENCE_STEPS}")
 
         model = XRayGenerator()
-        trainer = Trainer(model)
+        trainer = Trainer(
+            model,
+            lr=best_params["lr"],
+            batch_size=batch_size,
+            epochs=config.EPOCHS,
+            unet_lora_config={
+                "r": best_params["r_unet"],
+                "alpha": best_params["alpha_unet"],
+                "dropout": best_params["dropout_unet"],
+            },
+            text_lora_config={
+                "r": best_params["r_text"],
+                "alpha": best_params["alpha_text"],
+                "dropout": best_params["dropout_text"],
+            },
+            scheduler_config={
+                "T_max": best_params["T_max"],
+                "eta_min": best_params["eta_min"]
+            }
+        )
         trainer.train()
 
     elif args.mode == "generate":
@@ -47,7 +69,8 @@ def main():
             sys.exit(1)
 
         print("\nStart X-Ray image generating...")
-        print(f"Image width: {config.IMAGE_WIDTH}, Image height: {config.IMAGE_HEIGHT}, Number of inference steps: {config.NUM_INFERENCE_STEPS}")
+        print(
+            f"Image width: {config.IMAGE_WIDTH}, Image height: {config.IMAGE_HEIGHT}, Number of inference steps: {config.NUM_INFERENCE_STEPS}")
         generator = XRayGenerator()
         try:
             print(f"Loading model from {args.model_path}")
