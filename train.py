@@ -419,8 +419,11 @@ class Trainer:
         width = 0.35
 
         fig, ax = plt.subplots()
-        ax.bar(x - width / 2, baseline_scores, width, label='Baseline')
-        ax.bar(x + width / 2, finetuned_scores, width, label='Fine-tuned')
+        bars1 = ax.bar(x - width / 2, baseline_scores, width, label='Baseline')
+        bars2 = ax.bar(x + width / 2, finetuned_scores, width, label='Fine-tuned')
+
+        ax.bar_label(bars1, fmt='%.3f', padding=3)
+        ax.bar_label(bars2, fmt='%.3f', padding=3)
 
         ax.set_ylabel('Scores')
         ax.set_title('Fine-tuned vs Baseline Model on Test Set')
