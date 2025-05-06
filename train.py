@@ -97,7 +97,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
 class Trainer:
     def __init__(self, model, k_fold=None, batch_size=None, epochs=None, unet_lora_config=None, text_lora_config=None,
                  scheduler_config=None, lr_unet=None, lr_text=None, wd_unet=None, wd_text=None, checkpoint_dir=None,
-                 images_dir=None, early_stopping_patience=3, for_hpo=False, max_trial_time=600):
+                 images_dir=None, early_stopping_patience=3, for_hpo=False, max_trial_time=300):
 
         self.for_hpo = for_hpo
         self.model = model

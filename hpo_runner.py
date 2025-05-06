@@ -24,7 +24,7 @@ def _objective(trial):
     T_max = trial.suggest_int('T_max', 3, 6)
     eta_min = trial.suggest_float('eta_min', 1e-6, 1e-4)
 
-    batch_size = trial.suggest_categorical('batch_size', [2, 4, 8, 16])
+    batch_size = trial.suggest_categorical('batch_size', [16, 32, 48, 64])
 
     model = XRayGenerator()
     trainer = Trainer(
