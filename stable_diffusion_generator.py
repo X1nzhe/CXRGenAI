@@ -84,14 +84,16 @@ class XRayGenerator(nn.Module):
         full_prompt = f"{config.BASE_PROMPT_PREFIX}{diagnose}{config.BASE_PROMPT_SUFFIX}"
 
         with torch.no_grad():
-            generated_image = self.pipeline(
+            self.pipeline.to(torch.float32)
+            output = self.pipeline(
                 full_prompt,
                 num_inference_steps=steps,
                 height=resolution,
                 width=resolution,
                 generator=torch.manual_seed(123),
-            ).images[0]
+            )
 
+        generated_image = output.images[0]
         generated_image = generated_image.convert("L")
         image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
         image_dir = config.IMAGES_DIR
@@ -103,6 +105,69 @@ class XRayGenerator(nn.Module):
         print(f"Image saved to {file_path}")
 
         return file_path
+    # def generate_and_save_imageV2(self, diagnose, steps=None, resolution=None):
+    #     if steps is None:
+    #         steps = config.NUM_INFERENCE_STEPS
+    #     if resolution is None:
+    #         resolution = config.IMAGE_HEIGHT
+    #
+    #     self.pipeline.unet.eval()
+    #     self.pipeline.text_encoder.eval()
+    #     self.pipeline.vae.eval()
+    #
+    #     full_prompt = f"{config.BASE_PROMPT_PREFIX}{diagnose}{config.BASE_PROMPT_SUFFIX}"
+    #
+    #     with torch.no_grad():
+    #         # Set seed
+    #         generator = torch.Generator(device=self.pipeline.device).manual_seed(123)
+    #
+    #         # Step 1: Encode prompt
+    #         prompt_embeds = self.pipeline._encode_prompt(
+    #             full_prompt,
+    #             device=self.pipeline.device,
+    #             num_images_per_prompt=1,
+    #             do_classifier_free_guidance=False,
+    #         )
+    #
+    #         # Step 2: Prepare latents (bf16 or float16)
+    #         latents = self.pipeline.prepare_latents(
+    #             batch_size=1,
+    #             num_channels_latents=self.pipeline.unet.config.in_channels,
+    #             height=resolution,
+    #             width=resolution,
+    #             dtype=prompt_embeds.dtype,
+    #             device=self.pipeline.device,
+    #             generator=generator,
+    #         )
+    #
+    #         # Step 3: Denoising loop
+    #         latents = self.pipeline.scheduler.scale_model_input(latents, 0)  # t=0 for init
+    #         for t in self.pipeline.scheduler.timesteps:
+    #             latent_model_input = self.pipeline.scheduler.scale_model_input(latents, t)
+    #             noise_pred = self.pipeline.unet(latent_model_input, t, encoder_hidden_states=prompt_embeds).sample
+    #             latents = self.pipeline.scheduler.step(noise_pred, t, latents).prev_sample
+    #
+    #         # Step 4: Convert latents to float32 before VAE decode
+    #         latents = latents.to(dtype=torch.float32)
+    #
+    #         # Step 5: Decode
+    #         image = self.pipeline.vae.decode(latents / self.pipeline.vae.config.scaling_factor, return_dict=False)[0]
+    #
+    #         # Step 6: Post-process
+    #         image = self.pipeline.image_processor.postprocess(image, output_type="pil")[0]
+    #         image = image.convert("L")  # Convert to grayscale
+    #
+    #     # Save image
+    #     image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+    #     image_dir = config.IMAGES_DIR
+    #     os.makedirs(image_dir, exist_ok=True)
+    #     file_path = os.path.join(image_dir, f"generated_{image_filename}.png")
+    #     image.save(file_path)
+    #
+    #     print(f"Diagnose: {diagnose}")
+    #     print(f"Image saved to {file_path}")
+    #
+    #     return file_path
 
     # def generate_and_save_image(self, diagnose, steps=None, resolution=None):
     #     if steps is None:

@@ -211,8 +211,9 @@ class Trainer:
         for batch in test_loader:
             prompts = batch['report']
             for prompt in prompts:
-                concat_images_with_prompt(finetuned_model.generate_and_save_imageV2(prompt),
-                                          baseline_model.generate_and_save_imageV2(prompt), prompt, file_path)
+                img_path1 = finetuned_model.generate_and_save_imageV2(prompt)
+                img_path2 = baseline_model.generate_and_save_imageV2(prompt)
+                concat_images_with_prompt(img_path1, img_path2, prompt, file_path)
             break
 
         finetuned_scores = [test_loss, test_ssim, test_psnr]
