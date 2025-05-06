@@ -34,8 +34,7 @@ def main():
         batch_size = best_params["batch_size"]
 
         print("\nStart model training...")
-        print(
-            f"Epochs: {config.EPOCHS}, K_folds: {config.K_FOLDS}, Batch size: {batch_size}, Image width: {config.IMAGE_WIDTH}, Image height: {config.IMAGE_HEIGHT}, Number of inference steps: {config.NUM_INFERENCE_STEPS}")
+        print(f"Epochs: {config.EPOCHS}, K_folds: {config.K_FOLDS}, Batch size: {batch_size}, Image width: {config.IMAGE_WIDTH}, Image height: {config.IMAGE_HEIGHT}, Number of inference steps: {config.NUM_INFERENCE_STEPS}")
 
         model = XRayGenerator()
         trainer = Trainer(

@@ -41,7 +41,8 @@ def _objective(trial):
         scheduler_config={
             'T_max': T_max,
             'eta_min': eta_min
-        }
+        },
+        for_hpo=True
     )
 
     return trainer.train()
