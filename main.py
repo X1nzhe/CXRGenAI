@@ -28,12 +28,16 @@ def main():
     print(f"\nRunning with environment: {config.ENV}")
 
     if args.mode == "train":
+        print("\n Hyperparameters searching...")
+
+
         print("\nStart model training...")
         print(f"Epochs: {config.EPOCHS}, K_folds: {config.K_FOLDS}, Batch size: {config.BATCH_SIZE}, Image width: {config.IMAGE_WIDTH}, Image height: {config.IMAGE_HEIGHT}, Number of inference steps: {config.NUM_INFERENCE_STEPS}")
 
         model = XRayGenerator()
         trainer = Trainer(model)
         trainer.train()
+
     elif args.mode == "generate":
         if not args.description:
             print("Error：Please provide text description for the generated X-Ray image ")

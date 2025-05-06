@@ -15,18 +15,39 @@ from stable_diffusion_baseline import BaselineEvaluator, load_baseline_pipeline
 from datetime import datetime
 import textwrap
 
-def prepare_lora_model_for_training(pipeline):
+# def prepare_lora_model_for_training(pipeline):
+#     unet_lora_config = LoraConfig(
+#         r=16,
+#         lora_alpha=32,
+#         lora_dropout=0.1,
+#         target_modules=["to_k", "to_q", "to_v", "to_out.0"],  # For UNET
+#         modules_to_save=["conv_in"],
+#     )
+#     text_lora_config = LoraConfig(
+#         r=8,
+#         lora_alpha=16,
+#         lora_dropout=0.05,
+#         target_modules=["q_proj", "v_proj", "k_proj", "out_proj"],  # For Text encoder
+#         modules_to_save=["conv_in"],
+#     )
+#     pipeline.unet = get_peft_model(pipeline.unet, unet_lora_config)
+#     pipeline.text_encoder = get_peft_model(pipeline.text_encoder, text_lora_config)
+#     pipeline.unet.to(dtype=torch.bfloat16)
+#     pipeline.text_encoder.to(dtype=torch.bfloat16)
+#     return pipeline
+
+def prepare_lora_model_for_trainingV2(pipeline, unet_config, text_config):
     unet_lora_config = LoraConfig(
-        r=16,
-        lora_alpha=32,
-        lora_dropout=0.1,
+        r=unet_config["r"],
+        lora_alpha=unet_config["alpha"],
+        lora_dropout=unet_config["dropout"],
         target_modules=["to_k", "to_q", "to_v", "to_out.0"],  # For UNET
         modules_to_save=["conv_in"],
     )
     text_lora_config = LoraConfig(
-        r=8,
-        lora_alpha=16,
-        lora_dropout=0.05,
+        r=text_config["r"],
+        lora_alpha=text_config["alpha"],
+        lora_dropout=text_config["dropout"],
         target_modules=["q_proj", "v_proj", "k_proj", "out_proj"],  # For Text encoder
         modules_to_save=["conv_in"],
     )
@@ -35,7 +56,6 @@ def prepare_lora_model_for_training(pipeline):
     pipeline.unet.to(dtype=torch.bfloat16)
     pipeline.text_encoder.to(dtype=torch.bfloat16)
     return pipeline
-
 
 def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt):
     image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
@@ -73,10 +93,17 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
 
 
 class Trainer:
-    def __init__(self, model, k_fold=None, batch_size=None, epochs=None,
-                 lr=None, checkpoint_dir=None, images_dir=None, early_stopping_patience=3):
+    def __init__(self, model, k_fold=None, batch_size=None, epochs=None, unet_lora_config=None, text_lora_config=None,
+                 scheduler_config=None, lr=None, checkpoint_dir=None, images_dir=None, early_stopping_patience=3,
+                 for_hpo=False):
+
+        self.for_hpo = for_hpo
         self.model = model
-        self.model.pipeline = prepare_lora_model_for_training(model.pipeline)
+        self.unet_lora_config = unet_lora_config if unet_lora_config is not None else {"r": 16, "alpha": 32, "dropout": 0.1}
+        self.text_lora_config = text_lora_config if text_lora_config is not None else {"r": 8, "alpha": 16, "dropout": 0.05}
+        self.scheduler_config = scheduler_config if scheduler_config is not None else {"T_max": 3, "eta_min": 0.01}
+
+        self.model.pipeline = prepare_lora_model_for_trainingV2(model.pipeline, unet_lora_config, text_lora_config)
         accelerator = Accelerator(mixed_precision="bf16")
         self.model.pipeline.unet, self.model.pipeline.text_encoder = accelerator.prepare(
             self.model.pipeline.unet,
@@ -122,7 +149,8 @@ class Trainer:
         # Record the start time
         start_time = time.time()
         print(f"\nTraining started at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))} UTC")
-        for fold_data in kfold_loaders:
+        fold_range = kfold_loaders[:1] if self.for_hpo else kfold_loaders
+        for fold_data in fold_range:
             fold = fold_data['fold']
             train_loader = fold_data['train_loader']
             val_loader = fold_data['val_loader']
@@ -137,8 +165,8 @@ class Trainer:
             optimizer = torch.optim.AdamW(trainable_params)
             scheduler = CosineAnnealingLR(
                 optimizer,
-                T_max=3,
-                eta_min=self.lr * 0.01
+                T_max=self.scheduler_config["T_max"],
+                eta_min=self.scheduler_config["eta_min"]
             )
             torch.nn.utils.clip_grad_norm_(
                 parameters=unet_lora_layers + text_encoder_lora_layers,
@@ -169,14 +197,15 @@ class Trainer:
                         self.checkpoint_dir,
                         f"best_model_fold{fold}_epoch{epoch}"
                     )
+                    if not self.for_hpo:
+                        merged_unet = self.unet.merge_and_unload()
+                        merged_text_encoder = self.text_encoder.merge_and_unload()
+                        merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
+                        merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
+                        print(
+                            f"Best model updated: Fold {fold}, Epoch {epoch}, "
+                            f"Val SSIM Score {ssim:.4f}, saved to {best_model_info['path']}")
 
-                    merged_unet = self.unet.merge_and_unload()
-                    merged_text_encoder = self.text_encoder.merge_and_unload()
-                    merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
-                    merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
-                    print(
-                        f"Best model updated: Fold {fold}, Epoch {epoch}, "
-                        f"Val SSIM Score {ssim:.4f}, saved to {best_model_info['path']}")
                     early_stop_counter = 0
 
                 elif early_stop_counter >= self.early_stopping_patience:
@@ -185,6 +214,10 @@ class Trainer:
                 else:
                     early_stop_counter += 1
                     print(f"Early stopping counter: {early_stop_counter}/{self.early_stopping_patience}")
+
+            if self.for_hpo:
+                return best_ssim_score
+
         # After training loop
         # Record the end time
         end_time = time.time()
