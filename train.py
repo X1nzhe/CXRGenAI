@@ -1,4 +1,6 @@
 import os
+
+import optuna
 import torch
 from PIL import Image, ImageDraw, ImageFont
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -95,7 +97,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
 class Trainer:
     def __init__(self, model, k_fold=None, batch_size=None, epochs=None, unet_lora_config=None, text_lora_config=None,
                  scheduler_config=None, lr_unet=None, lr_text=None, wd_unet=None, wd_text=None, checkpoint_dir=None,
-                 images_dir=None, early_stopping_patience=3, for_hpo=False):
+                 images_dir=None, early_stopping_patience=3, for_hpo=False, max_trial_time=600):
 
         self.for_hpo = for_hpo
         self.model = model
@@ -139,6 +141,7 @@ class Trainer:
         os.makedirs(self.images_dir, exist_ok=True)
 
         self.early_stopping_patience = early_stopping_patience
+        self.max_trial_time = max_trial_time
 
     def train(self):
         kfold_loaders = get_dataloader(k_folds=self.k_fold, batch_size=self.batch_size)
@@ -181,6 +184,10 @@ class Trainer:
             early_stop_counter = 0
 
             for epoch in range(self.epochs):
+                if time.time() - start_time > self.max_trial_time:
+                    print("Trial exceeded time limit. Pruning.")
+                    raise optuna.exceptions.TrialPruned()
+
                 train_loss = self._train_epoch(train_loader, optimizer, fold, epoch)
                 val_loss, ssim, psnr = self._validate_epoch(val_loader, ssim_metric, psnr_metric, fold, epoch)
                 scheduler.step(train_loss)
@@ -296,7 +303,8 @@ class Trainer:
 
                 total_loss += loss.item()
                 total_ssim += ssim_metric(generated_images, real_images).item()
-                total_psnr += psnr_metric(generated_images, real_images).item()
+                if not self.for_hpo:
+                    total_psnr += psnr_metric(generated_images, real_images).item()
                 num_batches += 1
         return total_loss / max(num_batches, 1), total_ssim / max(num_batches, 1), total_psnr / max(num_batches, 1)
 
