@@ -21,7 +21,6 @@ class BaselineEvaluator:
     def evaluate(self, dataloader):
         total_loss, total_ssim, total_psnr, num_batches = 0.0, 0.0, 0.0, 0
         self.model.to(self.device)
-        self.model.eval()
 
         with torch.no_grad():
             for batch in tqdm(dataloader, desc="Evaluating Baseline"):
