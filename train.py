@@ -196,9 +196,9 @@ class Trainer:
         test_loader = kfold_loaders[0]['test_loader']
         test_loss, test_ssim, test_psnr = self._test_epoch(test_loader, ssim_metric, psnr_metric)
 
-        baseline_model = load_baseline_pipeline().to(self.device)
-        baseline_evaluator = BaselineEvaluator(baseline_model, self.device)
-        baseline_loss, baseline_ssim, baseline_psnr = baseline_evaluator.evaluate(test_loader)
+        baseline_model_pipe = load_baseline_pipeline().to(self.device)
+        baseline_model = BaselineEvaluator(baseline_model_pipe, self.device)
+        baseline_loss, baseline_ssim, baseline_psnr = baseline_model.evaluate(test_loader)
 
         print(
             f"Final Test - Fine-tuned Model- Avg Test Loss: {test_loss:.4f}, Avg Test SSIM: {test_ssim:.4f}, Avg Test PSNR: {test_psnr:.4f}")
