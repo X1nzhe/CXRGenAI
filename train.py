@@ -1,6 +1,6 @@
 import os
 import torch
-
+from PIL import Image, ImageDraw, ImageFont
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM, PeakSignalNoiseRatio as PSNR
 from accelerate import Accelerator
@@ -12,10 +12,9 @@ import numpy as np
 import config
 from data_loader import get_dataloader
 from stable_diffusion_baseline import BaselineEvaluator, load_baseline_pipeline
-from torchvision.utils import make_grid
+from datetime import datetime
 
 def prepare_lora_model_for_training(pipeline):
-
     unet_lora_config = LoraConfig(
         r=16,
         lora_alpha=32,
@@ -35,6 +34,37 @@ def prepare_lora_model_for_training(pipeline):
     pipeline.unet.to(dtype=torch.bfloat16)
     pipeline.text_encoder.to(dtype=torch.bfloat16)
     return pipeline
+
+
+def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt, save_path):
+    img1 = Image.open(finetuned_image_path).convert("L")
+    img2 = Image.open(baseline_image_path).convert("L")
+
+    if img1.height != img2.height:
+        new_height = max(img1.height, img2.height)
+        img1 = img1.resize((img1.width, new_height))
+        img2 = img2.resize((img2.width, new_height))
+
+    text_height = 40
+    new_img = Image.new("L", (img1.width + img2.width, img1.height + text_height), color=255)
+
+    new_img.paste(img1, (0, text_height))
+    new_img.paste(img2, (img1.width, text_height))
+
+    new_img_rgb = new_img.convert("RGB")
+    draw = ImageDraw.Draw(new_img_rgb)
+    try:
+        font = ImageFont.truetype("arial.ttf", size=20)
+    except:
+        font = ImageFont.load_default()
+
+    draw.text((10, 10), f"Prompt: {prompt}", fill=(0, 0, 0), font=font)
+    draw.text((img1.width // 2 - 60, text_height), "Fine-tuned Model", fill=(0, 0, 0), font=font)
+    draw.text((img1.width + img2.width // 2 - 60, text_height), "Baseline Model", fill=(0, 0, 0), font=font)
+
+    final_img = new_img_rgb.convert("L")
+    final_img.save(save_path)
+    print(f"Saved comparison image to {save_path}")
 
 
 class Trainer:
@@ -74,7 +104,6 @@ class Trainer:
         os.makedirs(self.images_dir, exist_ok=True)
 
         self.early_stopping_patience = early_stopping_patience
-
 
     def train(self):
         kfold_loaders = get_dataloader(k_folds=self.k_fold, batch_size=self.batch_size)
@@ -171,23 +200,24 @@ class Trainer:
         baseline_evaluator = BaselineEvaluator(baseline_model, self.device)
         baseline_loss, baseline_ssim, baseline_psnr = baseline_evaluator.evaluate(test_loader)
 
-        print(f"Final Test - Fine-tuned Model- Avg Test Loss: {test_loss:.4f}, Avg Test SSIM: {test_ssim:.4f}, Avg Test PSNR: {test_psnr:.4f}")
-        print(f"Final Test - Basemodel - Avg Test Loss: {baseline_loss:.4f}, Avg Test SSIM: {baseline_ssim:.4f}, Avg Test PSNR: {baseline_psnr:.4f}")
+        print(
+            f"Final Test - Fine-tuned Model- Avg Test Loss: {test_loss:.4f}, Avg Test SSIM: {test_ssim:.4f}, Avg Test PSNR: {test_psnr:.4f}")
+        print(
+            f"Final Test - Baseline Model - Avg Test Loss: {baseline_loss:.4f}, Avg Test SSIM: {baseline_ssim:.4f}, Avg Test PSNR: {baseline_psnr:.4f}")
 
         print(f"Generating some images...")
+        image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+        file_path = os.path.join(config.IMAGES_DIR, f"comparison_{image_filename}.png")
         for batch in test_loader:
             prompts = batch['report']
             for prompt in prompts:
-                print(f'prompt: {prompt}')
-                finetuned_model.generate_and_save_imageV2(prompt)
-                baseline_model.generate_and_save_imageV2(prompt)
+                concat_images_with_prompt(finetuned_model.generate_and_save_imageV2(prompt),
+                                          baseline_model.generate_and_save_imageV2(prompt), prompt, file_path)
             break
 
         finetuned_scores = [test_loss, test_ssim, test_psnr]
         baseline_scores = [baseline_loss, baseline_ssim, baseline_psnr]
         self._plot_finetune_baseline_scores(finetuned_scores, baseline_scores)
-
-
 
     def _train_epoch(self, train_loader, optimizer, fold, epoch):
         self.unet.train()
@@ -400,4 +430,3 @@ class Trainer:
         plt.tight_layout()
         plt.savefig(os.path.join(self.images_dir, f"model_comparison.png"))
         plt.close()
-

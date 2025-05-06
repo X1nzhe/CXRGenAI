@@ -38,7 +38,7 @@ class BaselineEvaluator:
                     width=config.IMAGE_WIDTH,
                     output_type="pt",
                 )
-                generated_images = outputs.images 
+                generated_images = outputs.images
 
                 loss = torch.nn.functional.mse_loss(generated_images, real_images)
                 total_loss += loss.item()
