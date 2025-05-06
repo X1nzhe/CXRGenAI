@@ -3,6 +3,8 @@ from diffusers import StableDiffusionPipeline
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM, PeakSignalNoiseRatio as PSNR
 from tqdm import tqdm
 import config
+import os
+from datetime import datetime
 
 
 def load_baseline_pipeline():
@@ -52,3 +54,38 @@ class BaselineEvaluator:
 
         print(f"\n[Baseline Evaluation] Loss: {avg_loss:.4f}, SSIM: {avg_ssim:.4f}, PSNR: {avg_psnr:.4f}")
         return avg_loss, avg_ssim, avg_psnr
+
+    def generate_and_save_imageV2(self, diagnose, steps=None, resolution=None):
+        if steps is None:
+            steps = config.NUM_INFERENCE_STEPS
+        if resolution is None:
+            resolution = config.IMAGE_HEIGHT
+
+        self.pipeline.unet.eval()
+        self.pipeline.text_encoder.eval()
+        self.pipeline.vae.eval()
+
+        full_prompt = f"{config.BASE_PROMPT_PREFIX}{diagnose}{config.BASE_PROMPT_SUFFIX}"
+
+        with torch.no_grad():
+            self.pipeline.to(torch.float32)
+            output = self.pipeline(
+                full_prompt,
+                num_inference_steps=steps,
+                height=resolution,
+                width=resolution,
+                generator=torch.manual_seed(123),
+            )
+
+        generated_image = output.images[0]
+        generated_image = generated_image.convert("L")
+        image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+        image_dir = config.IMAGES_DIR
+        os.makedirs(image_dir, exist_ok=True)
+
+        file_path = os.path.join(image_dir, f"generated_{image_filename}.png")
+        generated_image.save(file_path)
+        print(f"Diagnose: {diagnose}")
+        print(f"Image saved to {file_path}")
+
+        return file_path
