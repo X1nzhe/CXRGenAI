@@ -28,7 +28,7 @@ def _objective(trial):
     model = XRayGenerator()
     trainer = Trainer(
         model=model,
-        epochs=2,
+        epochs=5,
         unet_lora_config={
             'r': r_unet,
             'alpha': alpha_unet,
@@ -47,14 +47,15 @@ def _objective(trial):
         lr_text=lr_text,
         wd_unet=wd_unet,
         wd_text=wd_text,
-        for_hpo=True
+        for_hpo=True,
+        trial=trial
     )
 
     return trainer.train()
 
 
 def run_hpo(n_trials=30):
-    study = optuna.create_study(direction='maximize')
+    study = optuna.create_study(direction='minimize')
     study.optimize(_objective, n_trials=n_trials)
     study.optimize(_objective, timeout=1800)
 

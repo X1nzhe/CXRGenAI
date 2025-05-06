@@ -97,9 +97,10 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
 class Trainer:
     def __init__(self, model, k_fold=None, batch_size=None, epochs=None, unet_lora_config=None, text_lora_config=None,
                  scheduler_config=None, lr_unet=None, lr_text=None, wd_unet=None, wd_text=None, checkpoint_dir=None,
-                 images_dir=None, early_stopping_patience=3, for_hpo=False, max_trial_time=300):
+                 images_dir=None, early_stopping_patience=3, for_hpo=False, max_trial_time=300, trial=None):
 
         self.for_hpo = for_hpo
+        self.trial = trial
         self.model = model
         self.unet_lora_config = unet_lora_config if unet_lora_config is not None else {"r": 16, "alpha": 32, "dropout": 0.1}
         self.text_lora_config = text_lora_config if text_lora_config is not None else {"r": 8, "alpha": 16, "dropout": 0.05}
@@ -152,6 +153,8 @@ class Trainer:
         best_ssim_score = float("-inf")
         best_model_info = {"fold": None, "epoch": None, "path": None}
 
+        best_val_loss = float("inf")  # for hpo
+
         # Record the start time
         start_time = time.time()
         print(f"\nTraining started at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))} UTC")
@@ -184,9 +187,6 @@ class Trainer:
             early_stop_counter = 0
 
             for epoch in range(self.epochs):
-                if time.time() - start_time > self.max_trial_time:
-                    print("Trial exceeded time limit. Pruning.")
-                    raise optuna.exceptions.TrialPruned()
 
                 train_loss = self._train_epoch(train_loader, optimizer, fold, epoch)
                 val_loss, ssim, psnr = self._validate_epoch(val_loader, ssim_metric, psnr_metric, fold, epoch)
@@ -198,16 +198,25 @@ class Trainer:
 
                 print(f"\nFold {fold} - Epoch {epoch} - Avg Train Loss: {train_loss:.4f} "
                       f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
-
-                if ssim > best_ssim_score:
-                    best_ssim_score = ssim
-                    best_model_info["fold"] = fold
-                    best_model_info["epoch"] = epoch
-                    best_model_info["path"] = os.path.join(
-                        self.checkpoint_dir,
-                        f"best_model_fold{fold}_epoch{epoch}"
-                    )
-                    if not self.for_hpo:
+                if self.for_hpo:
+                    if val_loss < best_val_loss:
+                        best_val_loss = val_loss
+                        early_stop_counter = 0
+                    elif early_stop_counter >= self.early_stopping_patience:
+                        print(f"Early stopping triggered after {self.early_stopping_patience} epochs without improvement.")
+                        break
+                    else:
+                        early_stop_counter += 1
+                        print(f"Early stopping counter: {early_stop_counter}/{self.early_stopping_patience}")
+                else:
+                    if ssim > best_ssim_score:
+                        best_ssim_score = ssim
+                        best_model_info["fold"] = fold
+                        best_model_info["epoch"] = epoch
+                        best_model_info["path"] = os.path.join(
+                            self.checkpoint_dir,
+                            f"best_model_fold{fold}_epoch{epoch}"
+                        )
                         merged_unet = self.unet.merge_and_unload()
                         merged_text_encoder = self.text_encoder.merge_and_unload()
                         merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
@@ -215,18 +224,22 @@ class Trainer:
                         print(
                             f"Best model updated: Fold {fold}, Epoch {epoch}, "
                             f"Val SSIM Score {ssim:.4f}, saved to {best_model_info['path']}")
+                        early_stop_counter = 0
 
-                    early_stop_counter = 0
+                    elif early_stop_counter >= self.early_stopping_patience:
+                        print(f"Early stopping triggered after {self.early_stopping_patience} epochs without improvement.")
+                        break
+                    else:
+                        early_stop_counter += 1
+                        print(f"Early stopping counter: {early_stop_counter}/{self.early_stopping_patience}")
 
-                elif early_stop_counter >= self.early_stopping_patience:
-                    print(f"Early stopping triggered after {self.early_stopping_patience} epochs without improvement.")
-                    break
-                else:
-                    early_stop_counter += 1
-                    print(f"Early stopping counter: {early_stop_counter}/{self.early_stopping_patience}")
-
+                if self.trial:
+                    self.trial.report(val_loss, step=epoch)
+                    if self.trial.should_prune():
+                        print(f"Trial pruned at epoch {epoch} with Val loss {val_loss:.4f}")
+                        raise optuna.exceptions.TrialPruned()
             if self.for_hpo:
-                return best_ssim_score
+                return best_val_loss
 
         # After training loop
         # Record the end time
@@ -302,11 +315,14 @@ class Trainer:
                 loss = self._compute_test_loss(generated_images, real_images)
 
                 total_loss += loss.item()
-                total_ssim += ssim_metric(generated_images, real_images).item()
                 if not self.for_hpo:
+                    total_ssim += ssim_metric(generated_images, real_images).item()
                     total_psnr += psnr_metric(generated_images, real_images).item()
                 num_batches += 1
-        return total_loss / max(num_batches, 1), total_ssim / max(num_batches, 1), total_psnr / max(num_batches, 1)
+                avg_loss = total_loss / max(num_batches, 1)
+                avg_ssim = total_ssim / max(num_batches, 1) if not self.for_hpo else 0.0
+                avg_psnr = total_psnr / max(num_batches, 1) if not self.for_hpo else 0.0
+        return avg_loss, avg_ssim, avg_psnr
 
     def _test_epoch(self, test_loader, ssim_metric, psnr_metric):
         total_loss, total_ssim, total_psnr, num_batches = 0.0, 0.0, 0.0, 0
