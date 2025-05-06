@@ -21,6 +21,9 @@ def main():
     parser.add_argument(
         "--description", type=str, help="Text description to generate X-Ray image（'generate' mode only) "
     )
+    parser.add_argument(
+        "--hpo", default=False, help="Search best hyperparameters（'Train' mode only) "
+    )
 
     args = parser.parse_args()
 
