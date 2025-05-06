@@ -63,7 +63,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
     axes[1].set_title("Baseline Model", fontsize=12)
     axes[1].axis("off")
 
-    fig.suptitle(f"Prompt: {wrapped_prompt}", fontsize=12, y=1.05, ha='left', x=0.01)
+    fig.suptitle(f"Diagnose: {wrapped_prompt}", fontsize=12, y=1.05, ha='left', x=0.01)
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.85)
