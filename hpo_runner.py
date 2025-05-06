@@ -9,11 +9,16 @@ def _objective(trial):
     r_unet = trial.suggest_int('r_unet', 2, 16)
     alpha_unet = trial.suggest_int('lora_alpha_unet', 2, 64)
     dropout_unet = trial.suggest_float('lora_dropout_unet', 0.0, 0.3)
+    lr_unet = trial.suggest_float('lr_unet', 1e-5, 5e-4, log=True)
+    wd_unet = trial.suggest_float('wd_unet', 0.0, 0.3)
+
 
     # Text Encoder LoRA
     r_text = trial.suggest_int('r_text', 2, 16)
     alpha_text = trial.suggest_int('lora_alpha_text', 2, 64)
     dropout_text = trial.suggest_float('lora_dropout_text', 0.0, 0.3)
+    lr_text = trial.suggest_float('lr_text', 1e-6, 2e-4, log=True)
+    wd_text = trial.suggest_float('wd_text', 0.0, 0.2)
 
     # scheduler
     lr = trial.suggest_float('lr', 1e-5, 1e-3, log=True)
@@ -25,7 +30,6 @@ def _objective(trial):
     model = XRayGenerator()
     trainer = Trainer(
         model=model,
-        lr=lr,
         batch_size=batch_size,
         epochs=10,
         unet_lora_config={
@@ -42,6 +46,10 @@ def _objective(trial):
             'T_max': T_max,
             'eta_min': eta_min
         },
+        lr_unet=lr_unet,
+        lr_text=lr_text,
+        wd_unet=wd_unet,
+        wd_text=wd_text,
         for_hpo=True
     )
 

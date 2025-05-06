@@ -94,8 +94,8 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
 
 class Trainer:
     def __init__(self, model, k_fold=None, batch_size=None, epochs=None, unet_lora_config=None, text_lora_config=None,
-                 scheduler_config=None, lr=None, checkpoint_dir=None, images_dir=None, early_stopping_patience=3,
-                 for_hpo=False):
+                 scheduler_config=None, lr_unet=None, lr_text=None, wd_unet=None, wd_text=None, checkpoint_dir=None,
+                 images_dir=None, early_stopping_patience=3, for_hpo=False):
 
         self.for_hpo = for_hpo
         self.model = model
@@ -127,7 +127,10 @@ class Trainer:
         self.k_fold = k_fold if k_fold is not None else config.K_FOLDS
         self.batch_size = batch_size if batch_size is not None else config.BATCH_SIZE
         self.epochs = epochs if epochs is not None else config.EPOCHS
-        self.lr = lr if lr is not None else config.LEARNING_RATE
+        self.lr_unet = lr_unet if lr_unet is not None else config.LEARNING_RATE
+        self.lr_text = lr_text if lr_text is not None else config.LEARNING_RATE
+        self.wd_unet = wd_unet if wd_unet is not None else 0.25
+        self.wd_text = wd_text if wd_text is not None else 0.08
 
         self.checkpoint_dir = checkpoint_dir if checkpoint_dir is not None else config.CHECKPOINTS_DIR
         os.makedirs(self.checkpoint_dir, exist_ok=True)
@@ -159,8 +162,8 @@ class Trainer:
             unet_lora_layers = [p for p in self.unet.parameters() if p.requires_grad]
             text_encoder_lora_layers = [p for p in self.text_encoder.parameters() if p.requires_grad]
             trainable_params = [
-                {"params": unet_lora_layers, "lr": self.lr * 0.3, "weight_decay": 0.25},
-                {"params": text_encoder_lora_layers, "lr": self.lr * 0.05, "weight_decay": 0.08}
+                {"params": unet_lora_layers, "lr": self.lr_unet, "weight_decay": self.wd_unet},
+                {"params": text_encoder_lora_layers, "lr": self.lr_text, "weight_decay": self.wd_text}
             ]
             optimizer = torch.optim.AdamW(trainable_params)
             scheduler = CosineAnnealingLR(
