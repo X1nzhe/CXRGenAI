@@ -16,7 +16,7 @@ def _objective(trial):
     dropout_text = trial.suggest_float('lora_dropout_text', 0.0, 0.3)
 
     # scheduler
-    lr = trial.suggest_loguniform('lr', 1e-5, 1e-3)
+    lr = trial.suggest_float('lr', 1e-5, 1e-3, log=True)
     T_max = trial.suggest_int('T_max', 2, 10)
     eta_min = trial.suggest_float('eta_min', lr * 0.001, lr * 0.1)
 
