@@ -36,7 +36,10 @@ def prepare_lora_model_for_training(pipeline):
     return pipeline
 
 
-def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt, save_path):
+def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt):
+    image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+    file_path = os.path.join(config.IMAGES_DIR, f"comparison_{image_filename}.png")
+
     img1 = Image.open(finetuned_image_path).convert("L")
     img2 = Image.open(baseline_image_path).convert("L")
 
@@ -62,9 +65,9 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt,
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.85)
-    plt.savefig(save_path, bbox_inches="tight")
+    plt.savefig(file_path, bbox_inches="tight")
     plt.close()
-    print(f"Saved comparison image to {save_path}")
+    print(f"Saved comparison image to {file_path}")
 
 
 class Trainer:
@@ -206,14 +209,12 @@ class Trainer:
             f"Final Test - Baseline Model - Avg Test Loss: {baseline_loss:.4f}, Avg Test SSIM: {baseline_ssim:.4f}, Avg Test PSNR: {baseline_psnr:.4f}")
 
         print(f"Generating some images...")
-        image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
-        file_path = os.path.join(config.IMAGES_DIR, f"comparison_{image_filename}.png")
         for batch in test_loader:
             prompts = batch['report']
             for prompt in prompts:
                 img_path1 = finetuned_model.generate_and_save_imageV2(prompt)
                 img_path2 = baseline_model.generate_and_save_imageV2(prompt)
-                concat_images_with_prompt(img_path1, img_path2, prompt, file_path)
+                concat_images_with_prompt(img_path1, img_path2, prompt)
             break
 
         finetuned_scores = [test_loss, test_ssim, test_psnr]
