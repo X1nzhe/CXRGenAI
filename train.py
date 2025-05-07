@@ -242,7 +242,7 @@ class Trainer:
 
         print(f"Training complete. Running final test on the best model from {best_model_info['path']}...\n")
         finetuned_model = self.model.load_modelV2(best_model_info["path"])
-        test_loader = kfold_loaders['test_loader']
+        test_loader = kfold_loaders[0]['test_loader']
         test_loss, test_ssim, test_psnr = self._test_epoch(test_loader, ssim_metric, psnr_metric)
 
         baseline_model_pipe = load_baseline_pipeline().to(self.device)
