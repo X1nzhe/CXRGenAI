@@ -17,6 +17,7 @@ from stable_diffusion_baseline import BaselineEvaluator, load_baseline_pipeline
 from datetime import datetime
 import textwrap
 
+
 # def prepare_lora_model_for_training(pipeline):
 #     unet_lora_config = LoraConfig(
 #         r=16,
@@ -58,6 +59,7 @@ def prepare_lora_model_for_trainingV2(pipeline, unet_config, text_config):
     pipeline.unet.to(dtype=torch.bfloat16)
     pipeline.text_encoder.to(dtype=torch.bfloat16)
     return pipeline
+
 
 def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt):
     image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
@@ -102,8 +104,10 @@ class Trainer:
         self.for_hpo = for_hpo
         self.trial = trial
         self.model = model
-        self.unet_lora_config = unet_lora_config if unet_lora_config is not None else {"r": 16, "alpha": 32, "dropout": 0.1}
-        self.text_lora_config = text_lora_config if text_lora_config is not None else {"r": 8, "alpha": 16, "dropout": 0.05}
+        self.unet_lora_config = unet_lora_config if unet_lora_config is not None else {"r": 16, "alpha": 32,
+                                                                                       "dropout": 0.1}
+        self.text_lora_config = text_lora_config if text_lora_config is not None else {"r": 8, "alpha": 16,
+                                                                                       "dropout": 0.05}
         self.scheduler_config = scheduler_config if scheduler_config is not None else {"T_max": 3, "eta_min": 0.01}
 
         self.model.pipeline = prepare_lora_model_for_trainingV2(model.pipeline, unet_lora_config, text_lora_config)
@@ -189,21 +193,31 @@ class Trainer:
             for epoch in range(self.epochs):
 
                 train_loss = self._train_epoch(train_loader, optimizer, fold, epoch)
-                val_loss, ssim, psnr = self._validate_epoch(val_loader, ssim_metric, psnr_metric, fold, epoch)
                 scheduler.step(train_loss)
                 train_losses.append(train_loss)
-                val_losses.append(val_loss)
-                ssim_scores.append(ssim)
-                psnr_scores.append(psnr)
+                if self.for_hpo:
+                    if epoch % 5 == 0 or epoch == self.epochs - 1:
+                        val_loss, ssim, psnr = self._validate_epoch(val_loader, ssim_metric, psnr_metric, fold, epoch)
+                        val_losses.append(val_loss)
+                        ssim_scores.append(ssim)
+                        psnr_scores.append(psnr)
+                        print(f"\nFold {fold} - Epoch {epoch} - Avg Train Loss: {train_loss:.4f} "
+                              f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
+                else:
+                    val_loss, ssim, psnr = self._validate_epoch(val_loader, ssim_metric, psnr_metric, fold, epoch)
+                    val_losses.append(val_loss)
+                    ssim_scores.append(ssim)
+                    psnr_scores.append(psnr)
+                    print(f"\nFold {fold} - Epoch {epoch} - Avg Train Loss: {train_loss:.4f} "
+                          f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
 
-                print(f"\nFold {fold} - Epoch {epoch} - Avg Train Loss: {train_loss:.4f} "
-                      f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
                 if self.for_hpo:
                     if val_loss < best_val_loss:
                         best_val_loss = val_loss
                         early_stop_counter = 0
                     elif early_stop_counter >= self.early_stopping_patience:
-                        print(f"Early stopping triggered after {self.early_stopping_patience} epochs without improvement.")
+                        print(
+                            f"Early stopping triggered after {self.early_stopping_patience} epochs without improvement.")
                         break
                     else:
                         early_stop_counter += 1
@@ -227,7 +241,8 @@ class Trainer:
                         early_stop_counter = 0
 
                     elif early_stop_counter >= self.early_stopping_patience:
-                        print(f"Early stopping triggered after {self.early_stopping_patience} epochs without improvement.")
+                        print(
+                            f"Early stopping triggered after {self.early_stopping_patience} epochs without improvement.")
                         break
                     else:
                         early_stop_counter += 1
