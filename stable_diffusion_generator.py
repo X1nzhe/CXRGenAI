@@ -90,9 +90,7 @@ class XRayGenerator(nn.Module):
                 num_inference_steps=steps,
                 height=resolution,
                 width=resolution,
-                generator=torch.manual_seed(123),
             )
-
         generated_image = output.images[0]
         generated_image = generated_image.convert("L")
         image_filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]

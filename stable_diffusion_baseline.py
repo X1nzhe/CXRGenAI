@@ -74,7 +74,6 @@ class BaselineEvaluator:
                 num_inference_steps=steps,
                 height=resolution,
                 width=resolution,
-                generator=torch.manual_seed(123),
             )
 
         generated_image = output.images[0]
