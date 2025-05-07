@@ -267,25 +267,10 @@ class Trainer:
         baseline_scores = [baseline_loss, baseline_ssim, baseline_psnr]
         self._plot_finetune_baseline_scores(finetuned_scores, baseline_scores)
 
-    def save_best_model(self,path):
-        lora_path = os.path.join(path, "lora")
-        os.makedirs(lora_path, exist_ok=True)
-        self.unet.save_pretrained(os.path.join(lora_path, "unet"))
-        self.text_encoder.save_pretrained(os.path.join(lora_path, "text_encoder"))
-
-        merged_unet = self.unet.merge_and_unload()
-        merged_text_encoder = self.text_encoder.merge_and_unload()
-        merged_unet.save_pretrained(os.path.join(path, "unet"))
-        merged_text_encoder.save_pretrained(os.path.join(path, "text_encoder"))
-
-        self.unet = get_peft_model(merged_unet, self.unet_lora_config)
-        self.text_encoder = get_peft_model(merged_text_encoder, self.text_lora_config)
-
-        self.unet.load_adapter(os.path.join(lora_path, "unet"))
-        self.text_encoder.load_adapter(os.path.join(lora_path, "text_encoder"))
-
-        del merged_unet, merged_text_encoder
-        torch.cuda.empty_cache()
+    def save_best_model(self, path):
+        self.unet.save_pretrained(os.path.join(path, "unet"))
+        self.text_encoder.save_pretrained(os.path.join(path, "text_encoder"))
+        print(f"[INFO] Saved best LoRA model to: {path}")
 
     def _train_epoch(self, train_loader, optimizer, fold, epoch):
         self.unet.train()
