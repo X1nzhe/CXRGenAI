@@ -55,9 +55,8 @@ def _objective(trial):
 
 
 def run_hpo(n_trials=30):
-    study = optuna.create_study(direction='minimize')
+    study = optuna.create_study(direction='maximize')
     study.optimize(_objective, n_trials=n_trials)
-    study.optimize(_objective, timeout=1800)
 
     print("Best trial:", study.best_trial)
     return study.best_trial.params
