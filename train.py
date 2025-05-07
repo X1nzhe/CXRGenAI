@@ -104,11 +104,11 @@ class Trainer:
         self.for_hpo = for_hpo
         self.trial = trial
         self.model = model
-        self.unet_lora_config = unet_lora_config if unet_lora_config is not None else {"r": 16, "alpha": 32,
-                                                                                       "dropout": 0.1}
-        self.text_lora_config = text_lora_config if text_lora_config is not None else {"r": 8, "alpha": 16,
-                                                                                       "dropout": 0.05}
-        self.scheduler_config = scheduler_config if scheduler_config is not None else {"T_max": 3, "eta_min": 0.01}
+        self.unet_lora_config = unet_lora_config if unet_lora_config is not None else {"r": 13, "alpha": 18,
+                                                                                       "dropout": 0.19}
+        self.text_lora_config = text_lora_config if text_lora_config is not None else {"r": 9, "alpha": 24,
+                                                                                       "dropout": 0.0323}
+        self.scheduler_config = scheduler_config if scheduler_config is not None else {"T_max": 3, "eta_min": 3.231e-5}
 
         self.model.pipeline = prepare_lora_model_for_trainingV2(model.pipeline, unet_lora_config, text_lora_config)
         accelerator = Accelerator(mixed_precision="bf16")
@@ -134,10 +134,10 @@ class Trainer:
         self.k_fold = k_fold if k_fold is not None else config.K_FOLDS
         self.batch_size = batch_size if batch_size is not None else config.BATCH_SIZE
         self.epochs = epochs if epochs is not None else config.EPOCHS
-        self.lr_unet = lr_unet if lr_unet is not None else config.LEARNING_RATE
-        self.lr_text = lr_text if lr_text is not None else config.LEARNING_RATE
-        self.wd_unet = wd_unet if wd_unet is not None else 0.25
-        self.wd_text = wd_text if wd_text is not None else 0.08
+        self.lr_unet = lr_unet if lr_unet is not None else 1.183e-4
+        self.lr_text = lr_text if lr_text is not None else 3.265e-5
+        self.wd_unet = wd_unet if wd_unet is not None else 0.0994
+        self.wd_text = wd_text if wd_text is not None else 0.0872
 
         self.checkpoint_dir = checkpoint_dir if checkpoint_dir is not None else config.CHECKPOINTS_DIR
         os.makedirs(self.checkpoint_dir, exist_ok=True)

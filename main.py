@@ -35,7 +35,6 @@ def main():
         if args.hpo:
             print("\n Hyperparameters searching...")
             best_params = run_hpo(n_trials=30)
-            batch_size = best_params["batch_size"]
 
         print("\nStart model training...")
         print(f"Epochs: {config.EPOCHS}, K_folds: {config.K_FOLDS}, Batch size: {config.BATCH_SIZE}, Image width: {config.IMAGE_WIDTH}, Image height: {config.IMAGE_HEIGHT}, Number of inference steps: {config.NUM_INFERENCE_STEPS}")
