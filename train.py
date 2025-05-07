@@ -2,7 +2,7 @@ import os
 
 import optuna
 import torch
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM, PeakSignalNoiseRatio as PSNR
 from accelerate import Accelerator
@@ -45,14 +45,12 @@ def prepare_lora_model_for_trainingV2(pipeline, unet_config, text_config):
         lora_alpha=unet_config["alpha"],
         lora_dropout=unet_config["dropout"],
         target_modules=["to_k", "to_q", "to_v", "to_out.0"],  # For UNET
-        modules_to_save=["conv_in"],
     )
     text_lora_config = LoraConfig(
         r=text_config["r"],
         lora_alpha=text_config["alpha"],
         lora_dropout=text_config["dropout"],
         target_modules=["q_proj", "v_proj", "k_proj", "out_proj"],  # For Text encoder
-        modules_to_save=["conv_in"],
     )
     pipeline.unet = get_peft_model(pipeline.unet, unet_lora_config)
     pipeline.text_encoder = get_peft_model(pipeline.text_encoder, text_lora_config)
@@ -75,7 +73,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
 
     img1_np = np.array(img1)
     img2_np = np.array(img2)
-    wrapped_prompt = "\n".join(textwrap.wrap(prompt, width=300))
+    wrapped_prompt = "\n".join(textwrap.wrap(prompt, width=80))
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
 
@@ -126,7 +124,8 @@ class Trainer:
         self.noise_scheduler = self.model.pipeline.scheduler
 
         self.unet.enable_gradient_checkpointing()
-        self.text_encoder._set_gradient_checkpointing(True)
+        if hasattr(self.text_encoder, "gradient_checkpointing_enable"):
+            self.text_encoder.gradient_checkpointing_enable()
         self.unet.requires_grad_(True)
         self.text_encoder.requires_grad_(True)
         self.vae.requires_grad_(False)
@@ -148,6 +147,9 @@ class Trainer:
         self.early_stopping_patience = early_stopping_patience
         self.max_trial_time = max_trial_time
 
+        self.unet_lora_layers = [p for p in self.unet.parameters() if p.requires_grad]
+        self.text_encoder_lora_layers = [p for p in self.text_encoder.parameters() if p.requires_grad]
+
     def train(self):
         kfold_loaders = get_dataloader(k_folds=self.k_fold, batch_size=self.batch_size)
         ssim_metric = SSIM(data_range=2.0).to(self.device)
@@ -167,21 +169,15 @@ class Trainer:
             val_loader = fold_data['val_loader']
 
             print(f"\nStarting training for Fold {fold}...")
-            unet_lora_layers = [p for p in self.unet.parameters() if p.requires_grad]
-            text_encoder_lora_layers = [p for p in self.text_encoder.parameters() if p.requires_grad]
             trainable_params = [
-                {"params": unet_lora_layers, "lr": self.lr_unet, "weight_decay": self.wd_unet},
-                {"params": text_encoder_lora_layers, "lr": self.lr_text, "weight_decay": self.wd_text}
+                {"params": self.unet_lora_layers, "lr": self.lr_unet, "weight_decay": self.wd_unet},
+                {"params":self.text_encoder_lora_layers, "lr": self.lr_text, "weight_decay": self.wd_text}
             ]
             optimizer = torch.optim.AdamW(trainable_params)
             scheduler = CosineAnnealingLR(
                 optimizer,
                 T_max=self.scheduler_config["T_max"],
                 eta_min=self.scheduler_config["eta_min"]
-            )
-            torch.nn.utils.clip_grad_norm_(
-                parameters=unet_lora_layers + text_encoder_lora_layers,
-                max_norm=1.0
             )
 
             self.unet.train()
@@ -190,7 +186,7 @@ class Trainer:
 
             for epoch in range(self.epochs):
                 train_loss = self._train_epoch(train_loader, optimizer, fold, epoch)
-                scheduler.step(train_loss)
+                scheduler.step()
                 train_losses.append(train_loss)
                 val_loss, ssim, psnr = self._validate_epoch(val_loader, ssim_metric, psnr_metric, fold, epoch)
                 val_losses.append(val_loss)
@@ -207,10 +203,11 @@ class Trainer:
                         self.checkpoint_dir,
                         f"best_model_fold{fold}_epoch{epoch}"
                     )
-                    merged_unet = self.unet.merge_and_unload()
-                    merged_text_encoder = self.text_encoder.merge_and_unload()
-                    merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
-                    merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
+                    # merged_unet = self.unet.merge_and_unload()
+                    # merged_text_encoder = self.text_encoder.merge_and_unload()
+                    # merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
+                    # merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
+                    self.save_best_model(best_model_info["path"])
                     print(
                         f"Best model updated: Fold {fold}, Epoch {epoch}, "
                         f"Val SSIM Score {ssim:.4f}, saved to {best_model_info['path']}")
@@ -245,7 +242,7 @@ class Trainer:
 
         print(f"Training complete. Running final test on the best model from {best_model_info['path']}...\n")
         finetuned_model = self.model.load_modelV2(best_model_info["path"])
-        test_loader = kfold_loaders[0]['test_loader']
+        test_loader = kfold_loaders['test_loader']
         test_loss, test_ssim, test_psnr = self._test_epoch(test_loader, ssim_metric, psnr_metric)
 
         baseline_model_pipe = load_baseline_pipeline().to(self.device)
@@ -270,6 +267,26 @@ class Trainer:
         baseline_scores = [baseline_loss, baseline_ssim, baseline_psnr]
         self._plot_finetune_baseline_scores(finetuned_scores, baseline_scores)
 
+    def save_best_model(self,path):
+        lora_path = os.path.join(path, "lora")
+        os.makedirs(lora_path, exist_ok=True)
+        self.unet.save_pretrained(os.path.join(lora_path, "unet"))
+        self.text_encoder.save_pretrained(os.path.join(lora_path, "text_encoder"))
+
+        merged_unet = self.unet.merge_and_unload()
+        merged_text_encoder = self.text_encoder.merge_and_unload()
+        merged_unet.save_pretrained(os.path.join(path, "unet"))
+        merged_text_encoder.save_pretrained(os.path.join(path, "text_encoder"))
+
+        self.unet = get_peft_model(merged_unet, self.unet_lora_config)
+        self.text_encoder = get_peft_model(merged_text_encoder, self.text_lora_config)
+
+        self.unet.load_adapter(os.path.join(lora_path, "unet"))
+        self.text_encoder.load_adapter(os.path.join(lora_path, "text_encoder"))
+
+        del merged_unet, merged_text_encoder
+        torch.cuda.empty_cache()
+
     def _train_epoch(self, train_loader, optimizer, fold, epoch):
         self.unet.train()
         self.text_encoder.train()
@@ -280,6 +297,10 @@ class Trainer:
             images = images.to(self.device)
             loss = self._train_step(images, texts)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(
+                parameters=self.unet_lora_layers + self.text_encoder_lora_layers,
+                max_norm=1.0
+            )
             optimizer.step()
             optimizer.zero_grad()
             total_loss += loss.item()
