@@ -157,7 +157,7 @@ class Trainer:
         best_ssim_score = float("-inf")
         best_model_info = {"fold": None, "epoch": None, "path": None}
 
-        best_val_loss = float("inf")  # for hpo
+        best_train_loss = float("inf")  # for hpo
 
         # Record the start time
         start_time = time.time()
@@ -195,15 +195,17 @@ class Trainer:
                 train_loss = self._train_epoch(train_loader, optimizer, fold, epoch)
                 scheduler.step(train_loss)
                 train_losses.append(train_loss)
-                if self.for_hpo:
-                    if epoch % 5 == 0 or epoch == self.epochs - 1:
-                        val_loss, ssim, psnr = self._validate_epoch(val_loader, ssim_metric, psnr_metric, fold, epoch)
-                        val_losses.append(val_loss)
-                        ssim_scores.append(ssim)
-                        psnr_scores.append(psnr)
-                        print(f"\nFold {fold} - Epoch {epoch} - Avg Train Loss: {train_loss:.4f} "
-                              f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
-                else:
+                # if self.for_hpo:
+
+                    # if epoch % 5 == 0 or epoch == self.epochs - 1:
+                    #     val_loss, ssim, psnr = self._validate_epoch(val_loader, ssim_metric, psnr_metric, fold, epoch)
+                    #     val_losses.append(val_loss)
+                    #     ssim_scores.append(ssim)
+                    #     psnr_scores.append(psnr)
+                    #     print(f"\nFold {fold} - Epoch {epoch} - Avg Train Loss: {train_loss:.4f} "
+                    #           f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
+                # else:
+                if not self.for_hpo:
                     val_loss, ssim, psnr = self._validate_epoch(val_loader, ssim_metric, psnr_metric, fold, epoch)
                     val_losses.append(val_loss)
                     ssim_scores.append(ssim)
@@ -212,8 +214,8 @@ class Trainer:
                           f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
 
                 if self.for_hpo:
-                    if val_loss < best_val_loss:
-                        best_val_loss = val_loss
+                    if train_loss < best_train_loss:
+                        best_train_loss = train_loss
                         early_stop_counter = 0
                     elif early_stop_counter >= self.early_stopping_patience:
                         print(
@@ -254,7 +256,7 @@ class Trainer:
                         print(f"Trial pruned at epoch {epoch} with Val loss {val_loss:.4f}")
                         raise optuna.exceptions.TrialPruned()
             if self.for_hpo:
-                return best_val_loss
+                return best_train_loss
 
         # After training loop
         # Record the end time
