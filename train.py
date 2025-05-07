@@ -207,7 +207,7 @@ class Trainer:
                     # merged_text_encoder = self.text_encoder.merge_and_unload()
                     # merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
                     # merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
-                    self.save_best_model(best_model_info["path"])
+                    # self.save_best_model(best_model_info["path"])
                     print(
                         f"Best model updated: Fold {fold}, Epoch {epoch}, "
                         f"Val SSIM Score {ssim:.4f}, saved to {best_model_info['path']}")
