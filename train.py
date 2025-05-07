@@ -110,7 +110,7 @@ class Trainer:
                                                                                        "dropout": 0.0323}
         self.scheduler_config = scheduler_config if scheduler_config is not None else {"T_max": 3, "eta_min": 3.231e-5}
 
-        self.model.pipeline = prepare_lora_model_for_trainingV2(model.pipeline, unet_lora_config, text_lora_config)
+        self.model.pipeline = prepare_lora_model_for_trainingV2(model.pipeline, self.unet_lora_config, self.text_lora_config)
         accelerator = Accelerator(mixed_precision="bf16")
         self.model.pipeline.unet, self.model.pipeline.text_encoder = accelerator.prepare(
             self.model.pipeline.unet,
