@@ -1,3 +1,4 @@
+import copy
 import os
 
 import optuna
@@ -207,7 +208,7 @@ class Trainer:
                     # merged_text_encoder = self.text_encoder.merge_and_unload()
                     # merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
                     # merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
-                    # self.save_best_model(best_model_info["path"])
+                    self.save_best_model(best_model_info["path"])
                     print(
                         f"Best model updated: Fold {fold}, Epoch {epoch}, "
                         f"Val SSIM Score {ssim:.4f}, saved to {best_model_info['path']}")
@@ -230,10 +231,10 @@ class Trainer:
                 return best_ssim_score
 
         # After training loop
-        merged_unet = self.unet.merge_and_unload()
-        merged_text_encoder = self.text_encoder.merge_and_unload()
-        merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
-        merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
+        # merged_unet = self.unet.merge_and_unload()
+        # merged_text_encoder = self.text_encoder.merge_and_unload()
+        # merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
+        # merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
         # Record the end time
         end_time = time.time()
         total_time = end_time - start_time
@@ -272,8 +273,17 @@ class Trainer:
         self._plot_finetune_baseline_scores(finetuned_scores, baseline_scores)
 
     def save_best_model(self, path):
-        self.unet.save_pretrained(os.path.join(path, "unet"))
-        self.text_encoder.save_pretrained(os.path.join(path, "text_encoder"))
+        temp_unet = copy.deepcopy(self.unet)
+        temp_text_encoder = copy.deepcopy(self.text_encoder)
+
+        merged_unet = temp_unet.merge_and_unload()
+        merged_text_encoder = temp_text_encoder.merge_and_unload()
+
+        merged_unet.save_pretrained(os.path.join(path, "unet"))
+        merged_text_encoder.save_pretrained(os.path.join(path, "text_encoder"))
+
+        del temp_unet, temp_text_encoder, merged_unet, merged_text_encoder
+        torch.cuda.empty_cache()
         print(f"[INFO] Saved best LoRA model to: {path}")
 
     def _train_epoch(self, train_loader, optimizer, fold, epoch):
