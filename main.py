@@ -40,25 +40,7 @@ def main():
         print(f"Epochs: {config.EPOCHS}, K_folds: {config.K_FOLDS}, Batch size: {config.BATCH_SIZE}, Image width: {config.IMAGE_WIDTH}, Image height: {config.IMAGE_HEIGHT}, Number of inference steps: {config.NUM_INFERENCE_STEPS}")
 
         model = XRayGenerator()
-        trainer = Trainer(
-            model,
-            lr=best_params["lr"],
-            epochs=config.EPOCHS,
-            unet_lora_config={
-                "r": best_params["r_unet"],
-                "alpha": best_params["alpha_unet"],
-                "dropout": best_params["dropout_unet"],
-            },
-            text_lora_config={
-                "r": best_params["r_text"],
-                "alpha": best_params["alpha_text"],
-                "dropout": best_params["dropout_text"],
-            },
-            scheduler_config={
-                "T_max": best_params["T_max"],
-                "eta_min": best_params["eta_min"]
-            }
-        )
+        trainer = Trainer(model)
         trainer.train()
 
     elif args.mode == "generate":
