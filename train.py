@@ -86,7 +86,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
     axes[1].set_title("Baseline Model", fontsize=12)
     axes[1].axis("off")
 
-    fig.suptitle(f"Diagnose: {wrapped_prompt}", fontsize=12, y=1.05, ha='left', x=0.01)
+    fig.suptitle(f"Diagnose: {wrapped_prompt}", fontsize=12, y=1.05, ha='left', x=0.5)
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.85)
@@ -320,7 +320,7 @@ class Trainer:
                     f"{config.BASE_PROMPT_PREFIX}{text}{config.BASE_PROMPT_SUFFIX}" for text in texts
                 ]
                 generated_images = self.model.generate_images_Tensor(prompts)
-                if epoch % 2 == 0 and batch_idx % 5 == 0:
+                if epoch % 2 == 0 and batch_idx % 4 == 0:
                     self._plot_image_pair(fold, epoch, batch_idx, real_images[:4], generated_images[:4])
 
                 loss = self._compute_test_loss(generated_images, real_images)
