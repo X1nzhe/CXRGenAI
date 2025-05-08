@@ -315,11 +315,12 @@ class Trainer:
             for batch_idx, batch in enumerate(tqdm(val_loader, desc=f"Validating Fold {fold} - Epoch {epoch}")):
                 real_images, texts = batch['image'], batch['report']
 
-                real_images = real_images.to(self.device)
+                real_images = real_images.to(self.device)  # real_images has range [-1,1]
+                real_images = (real_images + 1) / 2  # To range [0,1]
                 prompts = [
                     f"{config.BASE_PROMPT_PREFIX}{text}{config.BASE_PROMPT_SUFFIX}" for text in texts
                 ]
-                generated_images = self.model.generate_images_Tensor(prompts)
+                generated_images = self.model.generate_images_Tensor(prompts)  # Tensor has range [0,1]
                 if epoch % 2 == 0 and batch_idx % 4 == 0:
                     self._plot_image_pair(fold, epoch, batch_idx, real_images[:4], generated_images[:4])
 
