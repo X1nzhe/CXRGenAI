@@ -464,7 +464,8 @@ class Trainer:
     def _plot_image_pair(self, fold, epoch, batch_idx, real_images, gen_images):
         num_samples = real_images.size(0)
         figsize = (10, 2.5 * num_samples)
-        fig, axes = plt.subplots(num_samples, 2, figsize=figsize)
+        fig, axes = plt.subplots(num_samples, 2, figsize=figsize, constrained_layout=True)
+        plt.subplots_adjust(wspace=0.4)
         if num_samples == 1:
             axes = np.expand_dims(axes, axis=0)
         for i in range(num_samples):
@@ -481,8 +482,7 @@ class Trainer:
             axes[i, 1].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample {i} Generated Image")
             axes[i, 1].axis('off')
 
-        plt.tight_layout()
-        plt.savefig(os.path.join(self.images_dir, f"fold{fold}_epoch{epoch}_batch{batch_idx}_comparison.png"))
+        plt.savefig(os.path.join(self.images_dir, f"fold{fold}_epoch{epoch}_batch{batch_idx}_comparison.png"), bbox_inches='tight')
         plt.close()
 
     def _plot_finetune_baseline_scores(self, finetuned_scores, baseline_scores):
