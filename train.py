@@ -320,8 +320,8 @@ class Trainer:
                     f"{config.BASE_PROMPT_PREFIX}{text}{config.BASE_PROMPT_SUFFIX}" for text in texts
                 ]
                 generated_images = self.model.generate_images_Tensor(prompts)
-                if epoch % 5 == 0 and batch_idx % 10 == 0:
-                    self._plot_image_pair(fold, epoch, batch_idx, real_images[0:1], generated_images[0:1])
+                if epoch % 2 == 0 and batch_idx % 5 == 0:
+                    self._plot_image_pair(fold, epoch, batch_idx, real_images[:4], generated_images[:4])
 
                 loss = self._compute_test_loss(generated_images, real_images)
 
@@ -461,23 +461,25 @@ class Trainer:
         plt.savefig(os.path.join(self.images_dir, "ssim_psnr_curve.png"))
         plt.close()
 
-    def _plot_image_pair(self, fold, epoch, batch_idx, real_image, gen_image):
+    def _plot_image_pair(self, fold, epoch, batch_idx, real_images, gen_images):
+        num_samples = real_images.size(0)
+        figsize = (10, 2.5 * num_samples)
+        fig, axes = plt.subplots(num_samples, 2, figsize=figsize)
+        if num_samples == 1:
+            axes = np.expand_dims(axes, axis=0)
+        for i in range(num_samples):
+            real_np = np.rot90(real_images[i, 0].cpu().numpy(), k=2)
+            real_np = np.fliplr(real_np)
+            gen_np = np.rot90(gen_images[i, 0].cpu().numpy(), k=2)
+            gen_np = np.fliplr(gen_np)
 
-        real_np = np.rot90(real_image[0, 0].cpu().numpy(), k=2)
-        real_np = np.fliplr(real_np)
-        gen_np = np.rot90(gen_image[0, 0].cpu().numpy(), k=2)
-        gen_np = np.fliplr(gen_np)
+            axes[i, 0].imshow(real_np, cmap='gray', origin='lower')
+            axes[i, 0].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample {i} Real Image")
+            axes[i, 0].axis('off')
 
-        figsize = (10, 5)
-        fig, axes = plt.subplots(1, 2, figsize=figsize)
-
-        axes[0].imshow(real_np, cmap='gray', origin='lower')
-        axes[0].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample 0 Real Image")
-        axes[0].axis('off')
-
-        axes[1].imshow(gen_np, cmap='gray', origin='lower')
-        axes[1].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample 0 Generated Image")
-        axes[1].axis('off')
+            axes[i, 1].imshow(gen_np, cmap='gray', origin='lower')
+            axes[i, 1].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample {i} Generated Image")
+            axes[i, 1].axis('off')
 
         plt.tight_layout()
         plt.savefig(os.path.join(self.images_dir, f"fold{fold}_epoch{epoch}_batch{batch_idx}_comparison.png"))
