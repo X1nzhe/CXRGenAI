@@ -74,7 +74,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
 
     img1_np = np.array(img1)
     img2_np = np.array(img2)
-    wrapped_prompt = "\n".join(textwrap.wrap(prompt, width=300))
+    wrapped_prompt = "\n".join(textwrap.wrap(prompt, width=80))
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
 
@@ -86,7 +86,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
     axes[1].set_title("Baseline Model", fontsize=12)
     axes[1].axis("off")
 
-    fig.suptitle(f"Diagnose: {wrapped_prompt}", fontsize=12, y=1.05, ha='left', x=0.5)
+    fig.suptitle(f"Diagnose: {wrapped_prompt}", fontsize=12, y=1.05, ha='left', x=0.3)
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.85)
@@ -153,8 +153,8 @@ class Trainer:
 
     def train(self):
         kfold_loaders = get_dataloader(k_folds=self.k_fold, batch_size=self.batch_size)
-        ssim_metric = SSIM(data_range=2.0).to(self.device)
-        psnr_metric = PSNR().to(self.device)
+        ssim_metric = SSIM(data_range=1.0).to(self.device)
+        psnr_metric = PSNR(data_range=1.0).to(self.device)
         train_losses, val_losses, ssim_scores, psnr_scores = [], [], [], []
 
         best_ssim_score = float("-inf")
@@ -341,11 +341,12 @@ class Trainer:
             for batch in tqdm(test_loader, desc=f"Testing"):
                 real_images, texts = batch['image'], batch['report']
 
-                real_images = real_images.to(self.device)
+                real_images = real_images.to(self.device)  # real_images has range [-1,1]
+                real_images = (real_images + 1) / 2  # To range [0,1]
                 prompts = [
                     f"{config.BASE_PROMPT_PREFIX}{text}{config.BASE_PROMPT_SUFFIX}" for text in texts
                 ]
-                generated_images = self.model.generate_images_Tensor(prompts)
+                generated_images = self.model.generate_images_Tensor(prompts)  # Tensor has range [0,1]
                 loss = self._compute_test_loss(generated_images, real_images)
 
                 total_loss += loss.item()

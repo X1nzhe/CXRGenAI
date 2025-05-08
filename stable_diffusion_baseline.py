@@ -82,7 +82,7 @@ class BaselineEvaluator:
         image_dir = config.IMAGES_DIR
         os.makedirs(image_dir, exist_ok=True)
 
-        file_path = os.path.join(image_dir, f"generated_{image_filename}.png")
+        file_path = os.path.join(image_dir, f"basemodel_generated_{image_filename}.png")
         generated_image.save(file_path)
         print(f"Diagnose: {diagnose}")
         print(f"Image saved to {file_path}")
