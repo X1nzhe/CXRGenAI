@@ -466,7 +466,7 @@ class Trainer:
         num_samples = real_images.size(0)
         figsize = (10, 2.5 * num_samples)
         fig, axes = plt.subplots(num_samples, 2, figsize=figsize, constrained_layout=True)
-        plt.subplots_adjust(wspace=0.4)
+
         if num_samples == 1:
             axes = np.expand_dims(axes, axis=0)
         for i in range(num_samples):
