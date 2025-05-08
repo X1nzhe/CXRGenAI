@@ -273,7 +273,7 @@ def to_rgd(img):
     return img.convert('RGB') if img.mode != 'RGB' else img
 
 
-def get_dataloader(k_folds=config.K_FOLDS, batch_size=8, test_split=0.2, random_seed=123):
+def get_dataloader(k_folds=config.K_FOLDS, batch_size=config.BATCH_SIZE, test_split=0.2, random_seed=123):
     check_and_download_dataset()
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)

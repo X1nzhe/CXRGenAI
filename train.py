@@ -74,7 +74,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
 
     img1_np = np.array(img1)
     img2_np = np.array(img2)
-    wrapped_prompt = "\n".join(textwrap.wrap(prompt, width=80))
+    wrapped_prompt = "\n".join(textwrap.wrap(prompt, width=100))
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
 
@@ -86,7 +86,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
     axes[1].set_title("Baseline Model", fontsize=12)
     axes[1].axis("off")
 
-    fig.suptitle(f"Diagnose: {wrapped_prompt}", fontsize=12, y=1.05, ha='left', x=0.3)
+    fig.suptitle(f"Diagnose: {wrapped_prompt}", fontsize=12, y=1.05, ha='left', x=0.1)
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.85)
