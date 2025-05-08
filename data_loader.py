@@ -355,25 +355,25 @@ def get_dataloader(k_folds=config.K_FOLDS, batch_size=config.BATCH_SIZE, test_sp
     return kfold_loaders
 
 
-# For test
-if __name__ == "__main__":
-
-    kfold_loaders = get_dataloader()
-
-    sample_fold = kfold_loaders[0]
-    print(f"Fold: {sample_fold['fold']}")
-    print(f"Training samples: {sample_fold['train_size']}")
-    print(f"Validation samples: {sample_fold['val_size']}")
-    print(f"Test samples: {sample_fold['test_size']}")
-
-    train_loader = sample_fold['train_loader']
-    for batch in train_loader:
-        print(f"Batch image shape: {batch['image'].shape}")
-
-        images = batch['image']
-        min_val = images.min().item()
-        max_val = images.max().item()
-        print(f"Image pixel value range: [{min_val}, {max_val}]")
-
-        print(f"Sample report: {batch['report'][0][:100]}...")
-        break
+# # For test
+# if __name__ == "__main__":
+#
+#     kfold_loaders = get_dataloader()
+#
+#     sample_fold = kfold_loaders[0]
+#     print(f"Fold: {sample_fold['fold']}")
+#     print(f"Training samples: {sample_fold['train_size']}")
+#     print(f"Validation samples: {sample_fold['val_size']}")
+#     print(f"Test samples: {sample_fold['test_size']}")
+#
+#     train_loader = sample_fold['train_loader']
+#     for batch in train_loader:
+#         print(f"Batch image shape: {batch['image'].shape}")
+#
+#         images = batch['image']
+#         min_val = images.min().item()
+#         max_val = images.max().item()
+#         print(f"Image pixel value range: [{min_val}, {max_val}]")
+#
+#         print(f"Sample report: {batch['report'][0][:100]}...")
+#         break
