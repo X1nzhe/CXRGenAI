@@ -328,8 +328,9 @@ def get_dataloader(k_folds=config.K_FOLDS, batch_size=config.BATCH_SIZE, test_sp
 
         train_loader = DataLoader(
             full_dataset,
-            batch_size=batch_size,
+            batch_size=batch_size//4,
             sampler=train_sampler,
+            shuffle=True,
             num_workers=os.cpu_count(),
             pin_memory=True
         )
@@ -338,6 +339,7 @@ def get_dataloader(k_folds=config.K_FOLDS, batch_size=config.BATCH_SIZE, test_sp
             full_dataset,
             batch_size=batch_size,
             sampler=val_sampler,
+            shuffle=False,
             num_workers=os.cpu_count(),
             pin_memory=True
         )
