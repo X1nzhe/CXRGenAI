@@ -74,7 +74,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
 
     img1_np = np.array(img1)
     img2_np = np.array(img2)
-    wrapped_prompt = "\n".join(textwrap.wrap(prompt, width=80))
+    wrapped_prompt = "\n".join(textwrap.wrap(prompt, width=300))
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
 
