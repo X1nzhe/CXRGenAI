@@ -18,6 +18,8 @@ from stable_diffusion_baseline import BaselineEvaluator, load_baseline_pipeline
 from datetime import datetime
 import textwrap
 
+from stable_diffusion_generator import XRayGenerator
+
 
 # def prepare_lora_model_for_training(pipeline):
 #     unet_lora_config = LoraConfig(
@@ -109,27 +111,28 @@ class Trainer:
                                                                                        "dropout": 0.05}
         self.scheduler_config = scheduler_config if scheduler_config is not None else {"T_max": 5, "eta_min": config.LEARNING_RATE*0.001}
 
-        self.model.pipeline = prepare_lora_model_for_trainingV2(model.pipeline, self.unet_lora_config, self.text_lora_config)
-        accelerator = Accelerator(mixed_precision="bf16")
-        self.model.pipeline.unet, self.model.pipeline.text_encoder = accelerator.prepare(
-            self.model.pipeline.unet,
-            self.model.pipeline.text_encoder
-        )
+        # self.model.pipeline = prepare_lora_model_for_trainingV2(model.pipeline, self.unet_lora_config, self.text_lora_config)
+        # accelerator = Accelerator(mixed_precision="bf16")
+        # self.model.pipeline.unet, self.model.pipeline.text_encoder = accelerator.prepare(
+        #     self.model.pipeline.unet,
+        #     self.model.pipeline.text_encoder
+        # )
+        self._prepare_model_for_training()
 
         self.device = model.device
 
-        self.unet = self.model.pipeline.unet
-        self.text_encoder = self.model.pipeline.text_encoder
-        self.tokenizer = self.model.pipeline.tokenizer
-        self.vae = self.model.pipeline.vae
-        self.noise_scheduler = self.model.pipeline.scheduler
-
-        self.unet.enable_gradient_checkpointing()
-        if hasattr(self.text_encoder, "gradient_checkpointing_enable"):
-            self.text_encoder.gradient_checkpointing_enable()
-        self.unet.requires_grad_(True)
-        self.text_encoder.requires_grad_(True)
-        self.vae.requires_grad_(False)
+        # self.unet = self.model.pipeline.unet
+        # self.text_encoder = self.model.pipeline.text_encoder
+        # self.tokenizer = self.model.pipeline.tokenizer
+        # self.vae = self.model.pipeline.vae
+        # self.noise_scheduler = self.model.pipeline.scheduler
+        #
+        # self.unet.enable_gradient_checkpointing()
+        # if hasattr(self.text_encoder, "gradient_checkpointing_enable"):
+        #     self.text_encoder.gradient_checkpointing_enable()
+        # self.unet.requires_grad_(True)
+        # self.text_encoder.requires_grad_(True)
+        # self.vae.requires_grad_(False)
 
         self.k_fold = k_fold if k_fold is not None else config.K_FOLDS
         self.batch_size = batch_size if batch_size is not None else config.BATCH_SIZE
@@ -148,8 +151,55 @@ class Trainer:
         self.early_stopping_patience = early_stopping_patience
         self.max_trial_time = max_trial_time
 
+        # self.unet_lora_layers = [p for p in self.unet.parameters() if p.requires_grad]
+        # self.text_encoder_lora_layers = [p for p in self.text_encoder.parameters() if p.requires_grad]
+        self._set_trainable_layers()
+
+    def _prepare_model_for_training(self):
+        self.model.pipeline = prepare_lora_model_for_trainingV2(self.model.pipeline, self.unet_lora_config,
+                                                                self.text_lora_config)
+        accelerator = Accelerator(mixed_precision="bf16")
+        self.model.pipeline.unet, self.model.pipeline.text_encoder = accelerator.prepare(
+            self.model.pipeline.unet,
+            self.model.pipeline.text_encoder
+        )
+
+        self.unet = self.model.pipeline.unet
+        self.text_encoder = self.model.pipeline.text_encoder
+        self.tokenizer = self.model.pipeline.tokenizer
+        self.vae = self.model.pipeline.vae
+        self.noise_scheduler = self.model.pipeline.scheduler
+
+        self.unet.enable_gradient_checkpointing()
+        if hasattr(self.text_encoder, "gradient_checkpointing_enable"):
+            self.text_encoder.gradient_checkpointing_enable()
+
+        self.unet.requires_grad_(True)
+        self.text_encoder.requires_grad_(True)
+        self.vae.requires_grad_(False)
+
+    def _set_trainable_layers(self):
         self.unet_lora_layers = [p for p in self.unet.parameters() if p.requires_grad]
         self.text_encoder_lora_layers = [p for p in self.text_encoder.parameters() if p.requires_grad]
+
+    def reset_model(self):
+        print("\nResetting model to initial pre-trained state...")
+
+        del self.model.pipeline
+        del self.unet
+        del self.text_encoder
+        del self.tokenizer
+        del self.vae
+        del self.noise_scheduler
+        torch.cuda.empty_cache()
+
+        self.model = XRayGenerator()
+
+        self._prepare_model_for_training()
+
+        self._set_trainable_layers()
+
+        print("Model reset complete.")
 
     def train(self):
         kfold_loaders = get_dataloader(k_folds=self.k_fold, batch_size=self.batch_size)
@@ -164,7 +214,12 @@ class Trainer:
         start_time = time.time()
         print(f"\nTraining started at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))} UTC")
         fold_range = kfold_loaders[:1] if self.for_hpo else kfold_loaders
-        for fold_data in fold_range:
+
+        for fold_idx, fold_data in enumerate(fold_range):
+
+            if fold_idx > 0:
+                self.reset_model()
+
             fold = fold_data['fold']
             train_loader = fold_data['train_loader']
             val_loader = fold_data['val_loader']

@@ -273,7 +273,7 @@ def to_rgd(img):
     return img.convert('RGB') if img.mode != 'RGB' else img
 
 
-def get_dataloader(k_folds=config.K_FOLDS, batch_size=config.BATCH_SIZE, test_split=0.2, random_seed=123):
+def get_dataloader(k_folds=config.K_FOLDS, batch_size=config.BATCH_SIZE, test_split=0.1, random_seed=123):
     check_and_download_dataset()
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)
@@ -291,7 +291,7 @@ def get_dataloader(k_folds=config.K_FOLDS, batch_size=config.BATCH_SIZE, test_sp
         transform=transform
     )
 
-    # 20% of full dataset for testing
+    # 10% of full dataset for testing
     dataset_size = len(full_dataset)
     test_size = int(test_split * dataset_size)
 
@@ -310,21 +310,20 @@ def get_dataloader(k_folds=config.K_FOLDS, batch_size=config.BATCH_SIZE, test_sp
         pin_memory=True
     )
     print(f"\nCreated Test dataset with {test_size} samples.")
-
-    # 80% of full dataset for training and validating
-    print(f"Creating K-fold (K={k_folds}) datasets...")
-    kfold = KFold(n_splits=k_folds, shuffle=True, random_state=random_seed)
-
     kfold_loaders = []
 
-    for fold, (train_ids, val_ids) in enumerate(kfold.split(train_val_ids)):
-        train_indices = train_val_ids[train_ids]
-        val_indices = train_val_ids[val_ids]
-        print(f'FOLD {fold}')
-        print(f'Train: {len(train_ids)} | Validation: {len(val_ids)}')
+    if k_folds <= 1:
+        # 90% of full dataset for training and validating
+        print(f"Creating training and validating datasets...")
+        train_ids, val_ids = train_test_split(
+            train_val_ids,
+            test_size=0.1,
+            random_state=random_seed,
+            shuffle=True
+        )
 
-        train_sampler = SubsetRandomSampler(train_indices)
-        val_sampler = SubsetRandomSampler(val_indices)
+        train_sampler = SubsetRandomSampler(train_ids)
+        val_sampler = SubsetRandomSampler(val_ids)
 
         train_loader = DataLoader(
             full_dataset,
@@ -343,7 +342,7 @@ def get_dataloader(k_folds=config.K_FOLDS, batch_size=config.BATCH_SIZE, test_sp
         )
 
         kfold_loaders.append({
-            'fold': fold,
+            'fold': 0,
             'train_loader': train_loader,
             'val_loader': val_loader,
             'train_size': len(train_ids),
@@ -351,6 +350,46 @@ def get_dataloader(k_folds=config.K_FOLDS, batch_size=config.BATCH_SIZE, test_sp
             'test_loader': test_loader,
             'test_size': len(test_ids),
         })
+
+    else:
+        # 90% of full dataset for training and validating
+        print(f"Creating K-fold (K={k_folds}) datasets...")
+        kfold = KFold(n_splits=k_folds, shuffle=True, random_state=random_seed)
+
+        for fold, (train_ids, val_ids) in enumerate(kfold.split(train_val_ids)):
+            train_indices = train_val_ids[train_ids]
+            val_indices = train_val_ids[val_ids]
+            print(f'FOLD {fold}')
+            print(f'Train: {len(train_ids)} | Validation: {len(val_ids)}')
+
+            train_sampler = SubsetRandomSampler(train_indices)
+            val_sampler = SubsetRandomSampler(val_indices)
+
+            train_loader = DataLoader(
+                full_dataset,
+                batch_size=batch_size,
+                sampler=train_sampler,
+                num_workers=os.cpu_count(),
+                pin_memory=True
+            )
+
+            val_loader = DataLoader(
+                full_dataset,
+                batch_size=batch_size,
+                sampler=val_sampler,
+                num_workers=os.cpu_count(),
+                pin_memory=True
+            )
+
+            kfold_loaders.append({
+                'fold': fold,
+                'train_loader': train_loader,
+                'val_loader': val_loader,
+                'train_size': len(train_ids),
+                'val_size': len(val_ids),
+                'test_loader': test_loader,
+                'test_size': len(test_ids),
+            })
 
     return kfold_loaders
 

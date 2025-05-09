@@ -9,7 +9,7 @@ ENV = os.getenv("ENV", "product")
 
 DEV_CONFIG = {
     "EPOCHS": 1,
-    "K_FOLDS": 2,
+    "K_FOLDS": 1,
     "BATCH_SIZE": 16,
     "IMAGE_WIDTH": 64,
     "IMAGE_HEIGHT": 64,
