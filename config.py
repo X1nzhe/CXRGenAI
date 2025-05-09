@@ -18,7 +18,7 @@ DEV_CONFIG = {
 
 PRODUCT_CONFIG = {
     "EPOCHS": 100,
-    "K_FOLDS": 5,
+    "K_FOLDS": 1,
     "BATCH_SIZE": 64,
     "IMAGE_WIDTH": 256,
     "IMAGE_HEIGHT": 256,
