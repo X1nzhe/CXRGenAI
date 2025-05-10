@@ -288,9 +288,9 @@ class Trainer:
                     print(f"Early stopping counter: {early_stop_counter}/{self.early_stopping_patience}")
 
                 if self.trial:
-                    self.trial.report(train_loss, step=epoch)
+                    self.trial.report(ssim, step=epoch)
                     if self.trial.should_prune():
-                        print(f"Trial pruned at epoch {epoch} with Val loss {train_loss:.4f}")
+                        print(f"Trial pruned at epoch {epoch} with SSIM {ssim:.4f}")
                         raise optuna.exceptions.TrialPruned()
             if self.for_hpo:
                 return best_ssim_score
