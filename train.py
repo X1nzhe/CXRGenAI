@@ -100,7 +100,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
 class Trainer:
     def __init__(self, model, k_fold=None, batch_size=None, epochs=None, unet_lora_config=None, text_lora_config=None,
                  scheduler_config=None, lr_unet=None, lr_text=None, wd_unet=None, wd_text=None, checkpoint_dir=None,
-                 images_dir=None, early_stopping_patience=3, for_hpo=False, max_trial_time=300, trial=None):
+                 images_dir=None, early_stopping_patience=5, for_hpo=False, max_trial_time=300, trial=None):
 
         self.for_hpo = for_hpo
         self.trial = trial
@@ -224,7 +224,10 @@ class Trainer:
             train_loader = fold_data['train_loader']
             val_loader = fold_data['val_loader']
 
-            print(f"\nStarting training for Fold {fold}...")
+            if self.k_fold > 1:
+                print(f"\nStarting training for Fold {fold}...")
+            else:
+                print(f"\nStarting training...")
             trainable_params = [
                 {"params": self.unet_lora_layers, "lr": self.lr_unet, "weight_decay": self.wd_unet},
                 {"params":self.text_encoder_lora_layers, "lr": self.lr_text, "weight_decay": self.wd_text}
@@ -248,8 +251,12 @@ class Trainer:
                 val_losses.append(val_loss)
                 ssim_scores.append(ssim)
                 psnr_scores.append(psnr)
-                print(f"\nFold {fold} - Epoch {epoch} - Avg Train Loss: {train_loss:.4f} "
-                      f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
+                if self.k_fold > 1:
+                    print(f"\nFold {fold} - Epoch {epoch} - Avg Train Loss: {train_loss:.4f} "
+                          f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
+                else:
+                    print(f"\nEpoch {epoch} - Avg Train Loss: {train_loss:.4f} "
+                          f"- Avg Val Loss: {val_loss:.4f} - Avg SSIM Score: {ssim:.4f} - Avg PSNR Score: {psnr:.4f}")
 
                 if ssim > best_ssim_score:
                     best_ssim_score = ssim
@@ -264,9 +271,12 @@ class Trainer:
                     # merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
                     # merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
                     self.save_best_model(best_model_info["path"])
-                    print(
-                        f"Best model updated: Fold {fold}, Epoch {epoch}, "
-                        f"Val SSIM Score {ssim:.4f}, saved to {best_model_info['path']}")
+                    if self.k_fold > 1:
+                        print(f"Best model updated: Fold {fold}, Epoch {epoch}, "
+                            f"Val SSIM Score {ssim:.4f}, saved to {best_model_info['path']}")
+                    else:
+                        print(f"Best model updated: Epoch {epoch}, "
+                              f"Val SSIM Score {ssim:.4f}, saved to {best_model_info['path']}")
                     early_stop_counter = 0
 
                 elif early_stop_counter >= self.early_stopping_patience:
@@ -532,11 +542,17 @@ class Trainer:
             gen_np = np.fliplr(gen_np)
 
             axes[i, 0].imshow(real_np, cmap='gray', origin='lower')
-            axes[i, 0].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample {i} Real Image")
+            if self.k_fold > 1:
+                axes[i, 0].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample {i} Real Image")
+            else:
+                axes[i, 0].set_title(f"Epoch {epoch} Batch {batch_idx} Sample {i} Real Image")
             axes[i, 0].axis('off')
 
             axes[i, 1].imshow(gen_np, cmap='gray', origin='lower')
-            axes[i, 1].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample {i} Generated Image")
+            if self.k_fold > 1:
+                axes[i, 1].set_title(f"Fold {fold} Epoch {epoch} Batch {batch_idx} Sample {i} Generated Image")
+            else:
+                axes[i, 1].set_title(f"Epoch {epoch} Batch {batch_idx} Sample {i} Generated Image")
             axes[i, 1].axis('off')
 
         plt.savefig(os.path.join(self.images_dir, f"fold{fold}_epoch{epoch}_batch{batch_idx}_comparison.png"), bbox_inches='tight')
