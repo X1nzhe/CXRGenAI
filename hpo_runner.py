@@ -28,7 +28,7 @@ def _objective(trial):
     model = XRayGenerator()
     trainer = Trainer(
         model=model,
-        epochs=5,
+        epochs=2,
         unet_lora_config={
             'r': r_unet,
             'alpha': alpha_unet,
