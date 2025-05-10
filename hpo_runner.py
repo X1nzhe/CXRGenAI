@@ -54,7 +54,7 @@ def _objective(trial):
     return trainer.train()
 
 
-def run_hpo(n_trials=30):
+def run_hpo(n_trials=10):
     study = optuna.create_study(direction='maximize')
     study.optimize(_objective, n_trials=n_trials)
 
