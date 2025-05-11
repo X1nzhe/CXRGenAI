@@ -21,27 +21,6 @@ import textwrap
 from stable_diffusion_generator import XRayGenerator
 
 
-# def prepare_lora_model_for_training(pipeline):
-#     unet_lora_config = LoraConfig(
-#         r=16,
-#         lora_alpha=32,
-#         lora_dropout=0.1,
-#         target_modules=["to_k", "to_q", "to_v", "to_out.0"],  # For UNET
-#         modules_to_save=["conv_in"],
-#     )
-#     text_lora_config = LoraConfig(
-#         r=8,
-#         lora_alpha=16,
-#         lora_dropout=0.05,
-#         target_modules=["q_proj", "v_proj", "k_proj", "out_proj"],  # For Text encoder
-#         modules_to_save=["conv_in"],
-#     )
-#     pipeline.unet = get_peft_model(pipeline.unet, unet_lora_config)
-#     pipeline.text_encoder = get_peft_model(pipeline.text_encoder, text_lora_config)
-#     pipeline.unet.to(dtype=torch.bfloat16)
-#     pipeline.text_encoder.to(dtype=torch.bfloat16)
-#     return pipeline
-
 def prepare_lora_model_for_trainingV2(pipeline, unet_config, text_config):
     unet_lora_config = LoraConfig(
         r=unet_config["r"],
@@ -111,28 +90,9 @@ class Trainer:
                                                                                        "dropout": 0.16479}
         self.scheduler_config = scheduler_config if scheduler_config is not None else {"T_max": 5, "eta_min": config.LEARNING_RATE*0.463588}
 
-        # self.model.pipeline = prepare_lora_model_for_trainingV2(model.pipeline, self.unet_lora_config, self.text_lora_config)
-        # accelerator = Accelerator(mixed_precision="bf16")
-        # self.model.pipeline.unet, self.model.pipeline.text_encoder = accelerator.prepare(
-        #     self.model.pipeline.unet,
-        #     self.model.pipeline.text_encoder
-        # )
         self._prepare_model_for_training()
 
         self.device = model.device
-
-        # self.unet = self.model.pipeline.unet
-        # self.text_encoder = self.model.pipeline.text_encoder
-        # self.tokenizer = self.model.pipeline.tokenizer
-        # self.vae = self.model.pipeline.vae
-        # self.noise_scheduler = self.model.pipeline.scheduler
-        #
-        # self.unet.enable_gradient_checkpointing()
-        # if hasattr(self.text_encoder, "gradient_checkpointing_enable"):
-        #     self.text_encoder.gradient_checkpointing_enable()
-        # self.unet.requires_grad_(True)
-        # self.text_encoder.requires_grad_(True)
-        # self.vae.requires_grad_(False)
 
         self.k_fold = k_fold if k_fold is not None else config.K_FOLDS
         self.batch_size = batch_size if batch_size is not None else config.BATCH_SIZE
@@ -151,8 +111,6 @@ class Trainer:
         self.early_stopping_patience = early_stopping_patience
         self.max_trial_time = max_trial_time
 
-        # self.unet_lora_layers = [p for p in self.unet.parameters() if p.requires_grad]
-        # self.text_encoder_lora_layers = [p for p in self.text_encoder.parameters() if p.requires_grad]
         self._set_trainable_layers()
 
     def _prepare_model_for_training(self):
@@ -266,10 +224,7 @@ class Trainer:
                         self.checkpoint_dir,
                         f"best_model_fold{fold}_epoch{epoch}"
                     )
-                    # merged_unet = self.unet.merge_and_unload()
-                    # merged_text_encoder = self.text_encoder.merge_and_unload()
-                    # merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
-                    # merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
+
                     self.save_best_model(best_model_info["path"])
                     if self.k_fold > 1:
                         print(f"Best model updated: Fold {fold}, Epoch {epoch}, "
@@ -296,10 +251,6 @@ class Trainer:
                 return best_ssim_score
 
         # After training loop
-        # merged_unet = self.unet.merge_and_unload()
-        # merged_text_encoder = self.text_encoder.merge_and_unload()
-        # merged_unet.save_pretrained(os.path.join(best_model_info["path"], "unet"))
-        # merged_text_encoder.save_pretrained(os.path.join(best_model_info["path"], "text_encoder"))
         # Record the end time
         end_time = time.time()
         total_time = end_time - start_time
