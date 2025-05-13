@@ -3,7 +3,7 @@
 ## Introduction 
 This project aims to develop a diffusion-based deep learning model 
 for generating synthetic X-ray images from textual descriptions. 
-By training the model, it enables the automatic generation of medical images from diagnostic inputs.
+By fine-tuning the model, it enables the automatic generation of medical images from diagnostic inputs.
 ## Compatibility Notice
 >The project is independently runnable; 
 >however, it has been tested on Google Colab, 
@@ -18,7 +18,7 @@ https://github.com/X1nzhe/CXRGenAI.git
 >❗️❗️ Two ready-to-use Jupyter notebooks (*_Example_Usage.ipynb) are provided for your convenience. 
 
 >❗️❗️ In Google Colab, Set the runtime type to L4 GPU or A100 GPU. Other hardware accelerations may not be supported.
-### Usage 1: Model Training
+### Usage 1: Model Finetuning
 #### 0. Download code from Github
 ```
 !git clone https://github.com/X1nzhe/CXRGenAI.git
@@ -34,12 +34,14 @@ https://github.com/X1nzhe/CXRGenAI.git
 
 # DEV_CONFIG = {
     "EPOCHS": 1,
-    "K_FOLDS": 2,
-    "BATCH_SIZE": 8,
-    "IMAGE_WIDTH": 128,
-    "IMAGE_HEIGHT": 128,
-    "NUM_INFERENCE_STEPS": 20,
+    "K_FOLDS": 1,
+    "BATCH_SIZE": 16,
+    "IMAGE_WIDTH": 64,
+    "IMAGE_HEIGHT": 64,
+    "NUM_INFERENCE_STEPS": 5,
 }
+# Base learning rate
+# LEARNING_RATE = 1e-4
 ```
 
 ```
@@ -48,6 +50,7 @@ https://github.com/X1nzhe/CXRGenAI.git
 # --mode: The mode of how would you like to use the software, chosing 'train' or 'generate'
 # --model_path: Path to pre-trained model（'generate' mode only)
 # --description: Text description to generate X-Ray image（'generate' mode only)
+# --hpo: Boolean value, Search best hyperparameters（'Train' mode only). By default, it set to 'False'
 ```
 ```
 # Set '--env' to dev for the using of debug config
@@ -72,7 +75,15 @@ def show_images_from(image_dir):
 
 show_images_from("/content/CXRGenAI/images")
 ```
-#### 3. Fully Run for Training the model
+#### 3. Hyperparameter optimization
+```
+!python /content/CXRGenAI/main.py --hpo True --env dev --mode train
+```
+```
+# A potential best hyperparameter config:
+params={'r_unet': 4, 'lora_alpha_unet': 10, 'lora_dropout_unet': 0.12592221109829052, 'lr_unet': 8.234899202069318e-05, 'wd_unet': 0.013554743732836648, 'r_text': 16, 'lora_alpha_text': 30, 'lora_dropout_text': 0.16479399913135992, 'lr_text': 2.594085844504432e-06, 'wd_text': 0.010520562549017854, 'T_max': 5, 'eta_min': 4.6358824241299676e-05}
+```
+#### 4. Fully Run for Training the model
 ```
 # (Optinal) Remove images directory if you were run the code in Debug mode
 !rm -rf /content/CXRGenAI/images
@@ -83,12 +94,14 @@ show_images_from("/content/CXRGenAI/images")
 
 # PRODUCT_CONFIG = {
     "EPOCHS": 100,
-    "K_FOLDS": 5,
-    "BATCH_SIZE": 48,
+    "K_FOLDS": 1,
+    "BATCH_SIZE": 16,
     "IMAGE_WIDTH": 256,
     "IMAGE_HEIGHT": 256,
-    "NUM_INFERENCE_STEPS": 500,
+    "NUM_INFERENCE_STEPS": 100,
 }
+# Base learning rate
+# LEARNING_RATE = 1e-4
 ```
 ```
 # Command-line Arguments 
@@ -96,11 +109,12 @@ show_images_from("/content/CXRGenAI/images")
 # --mode: The mode of how would you like to use the software, chosing 'train' or 'generate'
 # --model_path: Path to pre-trained model（'generate' mode only)
 # --description: Text description to generate X-Ray image（'generate' mode only)
+# --hpo: Boolean value, Search best hyperparameters（'Train' mode only). By default, it set to 'False'
 ```
 ```
 !python /content/CXRGenAI/main.py --mode train
 ```
-#### 4. Review results
+#### 5. Review results
 
 ```
 import os
@@ -120,7 +134,7 @@ def show_images_from(image_dir):
 
 show_images_from("/content/CXRGenAI/images")
 ```
-#### 5. Save the fine-tuned model and training results
+#### 6. Save the fine-tuned model and training results
 ```
 import shutil
 
@@ -208,4 +222,5 @@ display(Image.open(generated_img_path))
 - _**Evaluation Strategy:**_ Tracks model performance with MSE (Mean Squared Error) loss, SSIM (Structural Similarity Index) and PSNR (Peak Signal-to-Noise Ratio), integrating an early stopping mechanism based on SSIM.
 - _**Early Stopping:**_ Stops training early if SSIM plateaus to prevent overfitting and save computation resources.
 - _**Cross-Validation:**_ Uses an 80/20 train-test split with 5-fold cross-validation for comprehensive model evaluation.
+- _**Hyperparameter Optimization:**_ Incorporates Optuna for automated hyperparameter search, tuning key parameters such as learning rate, LoRA rank, batch size, and scheduler settings. This ensures optimal model performance across folds while reducing manual trial-and-error.
 
