@@ -13,7 +13,7 @@ def main():
         "--env", choices=["dev", "product"], default="product", help="Choose runtime environment"
     )
     parser.add_argument(
-        "--mode", choices=["train", "generate"], required=True, help="Choose mode：'train' or 'generate'"
+        "--mode", choices=["train", "generate"], help="Choose mode：'train' or 'generate'"
     )
     parser.add_argument(
         "--model_path", type=str, help="Path to pre-trained model（'generate' mode only) "
@@ -32,6 +32,8 @@ def main():
     )
 
     args = parser.parse_args()
+    if args.mode is None and not args.hpo:
+        parser.error("You must specify either --mode or --hpo (or both).")
 
     config.ENV = args.env
     config.reload_config()
