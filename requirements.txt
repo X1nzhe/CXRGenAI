@@ -13,7 +13,7 @@ fsspec==2025.3.0
 ftfy==6.3.1
 greenlet==3.2.1
 h11==0.14.0
-huggingface-hub==0.29.3
+huggingface-hub==0.31.2
 idna==3.10
 importlib_metadata==8.6.1
 Jinja2==3.1.4
@@ -36,6 +36,7 @@ packaging==24.2
 pandas==2.2.3
 peft==0.15.0
 pillow==11.0.0
+pip==25.1.1
 psutil==7.0.0
 pycryptodomex==3.21.0
 Pygments==2.15.1
@@ -49,6 +50,7 @@ rich==13.9.4
 safetensors==0.5.3
 scikit-learn==1.6.1
 scipy==1.15.2
+setuptools==69.5.1
 six==1.16.0
 SQLAlchemy==2.0.40
 sympy==1.13.3
@@ -67,4 +69,5 @@ tzdata==2025.1
 unicodedata2==15.1.0
 urllib3==2.3.0
 wcwidth==0.2.13
+wheel==0.38.4
 zipp==3.21.0
