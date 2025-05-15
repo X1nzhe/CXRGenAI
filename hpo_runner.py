@@ -6,23 +6,23 @@ from train import Trainer
 
 def _objective(trial):
     # UNet LoRA
-    r_unet = trial.suggest_int('r_unet', 3, 10)
-    alpha_unet = trial.suggest_int('lora_alpha_unet', 8, 16)
-    dropout_unet = trial.suggest_float('lora_dropout_unet', 0.05, 0.15)
-    lr_unet = trial.suggest_float('lr_unet', 5e-5, 1.5e-4, log=True)
-    wd_unet = trial.suggest_float('wd_unet', 0.0, 0.05)
+    r_unet = trial.suggest_int('r_unet', 12, 16)
+    alpha_unet = trial.suggest_int('lora_alpha_unet', 12, 24)
+    dropout_unet = trial.suggest_float('lora_dropout_unet', 0.0, 0.05)
+    lr_unet = trial.suggest_float('lr_unet', 6e-5, 1e-4, log=True)
+    wd_unet = trial.suggest_float('wd_unet', 0.02, 0.3)
 
 
     # Text Encoder LoRA
-    r_text = trial.suggest_int('r_text', 12, 24)
-    alpha_text = trial.suggest_int('lora_alpha_text', 24, 36)
-    dropout_text = trial.suggest_float('lora_dropout_text', 0.1, 0.18)
-    lr_text = trial.suggest_float('lr_text', 1e-6, 5e-6, log=True)
-    wd_text = trial.suggest_float('wd_text', 0.0, 0.02)
+    r_text = trial.suggest_int('r_text', 8, 16)
+    alpha_text = trial.suggest_int('lora_alpha_text', 24, 32)
+    dropout_text = trial.suggest_float('lora_dropout_text', 0.02, 0.08)
+    lr_text = trial.suggest_float('lr_text', 1.5e-6, 5e-6, log=True)
+    wd_text = trial.suggest_float('wd_text', 0.01, 0.1)
 
     # scheduler
-    T_max = trial.suggest_int('T_max', 4, 6)
-    eta_min = trial.suggest_float('eta_min', 1e-5, 6e-5)
+    T_max = trial.suggest_int('T_max', 3, 6)
+    eta_min = trial.suggest_float('eta_min', 5e-5, 1e-4)
 
 
     model = XRayGenerator()
