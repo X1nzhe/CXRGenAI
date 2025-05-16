@@ -79,7 +79,7 @@ def concat_images_with_prompt(finetuned_image_path, baseline_image_path, prompt)
 class Trainer:
     def __init__(self, model, k_fold=None, batch_size=None, epochs=None, unet_lora_config=None, text_lora_config=None,
                  scheduler_config=None, lr_unet=None, lr_text=None, wd_unet=None, wd_text=None, checkpoint_dir=None,
-                 images_dir=None, early_stopping_patience=3, for_hpo=False, max_trial_time=300, trial=None):
+                 images_dir=None, early_stopping_patience=7, for_hpo=False, max_trial_time=300, trial=None):
 
         self.for_hpo = for_hpo
         self.trial = trial
@@ -88,7 +88,7 @@ class Trainer:
                                                                                        "dropout": 0.0026}
         self.text_lora_config = text_lora_config if text_lora_config is not None else {"r": 14, "alpha": 32,
                                                                                        "dropout": 0.059}
-        self.scheduler_config = scheduler_config if scheduler_config is not None else {"T_max": 5, "eta_min": config.LEARNING_RATE*0.979}
+        self.scheduler_config = scheduler_config if scheduler_config is not None else {"T_max": 8, "eta_min": config.LEARNING_RATE*0.979}
 
         self._prepare_model_for_training()
 
